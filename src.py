@@ -63,7 +63,7 @@ orderStatus
 
 #### 获取账户的用户名信息
 def GetAcctName():
-    tb = pd.read_csv("./depend/accountMap.txt", header=None)
+    tb = pd.read_csv("depend/accountMap.txt", header=None)
     tb.index = tb[0]
     tb = tb[[1]]
     tb.index.name = None
@@ -72,9 +72,21 @@ def GetAcctName():
 
     return tb_dict
 
+def get_stock_history_from_yahoo(ticker="NFLX"):
+    urlstr = "https://finance.yahoo.com/quote/{0}/history?p={0}".format(ticker)
+    hdata = pd.read_html(urlstr)[0][:-1]
+    hdata = hdata.set_index('Date')
+    hdata.index = pd.to_datetime(hdata.index)
+    hdata = hdata.astype('d')
+    hdata.columns = ['Open', 'High', 'Low', 'Close', 'AdjClose', 'Volume']
+    hdata_reindexed=hdata.reset_index()
+    valid_set = hdata_reindexed.sort_values(by='Date').reset_index(drop=True)
+    return valid_set
+
 #########################################################################################################
 
 ################################### Self-design classes #################################################
+## Batch Manager 类，负责管理batch
 class BatchManager():
 
     def __init__(self):
@@ -118,7 +130,7 @@ class BatchManager():
     def getAcctID(self):
         return self.AcctID;
 
-
+## updateData 类 继承于 qthread 负责实时更新数据
 class UpdateData(QtCore.QThread):
     requestChanged = QtCore.pyqtSignal(int, int, str)  # rowIndex, msgType,msg
 
@@ -152,9 +164,63 @@ class UpdateData(QtCore.QThread):
                 self.requestChanged.emit(2,3, msgs[1])
                 print(msgs[1])
 
+## 绘制图形用的 class 该类目前生成了k线图
+class DrawRecItem(pg.GraphicsObject):
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+        self.draw_rect()
 
+    def draw_rect(self):
+
+        self.picture = QPicture()
+        p1 = QPainter(self.picture)
+
+        # 设置画pen 颜色，用来画线
+        p1.setPen(pg.mkPen('w'))
+        for i in range(len(self.data)):
+            # 画一条最大值最小值之间的线
+            p1.drawLine(QPointF(self.data.index[i], self.data.Low[i]), QPointF(self.data.index[i], self.data.High[i]))
+            # 设置画刷颜色
+            if self.data.Open[i] > self.data.Close[i]:
+                p1.setBrush(pg.mkBrush('g'))
+            else:
+                p1.setBrush(pg.mkBrush('r'))
+            p1.drawRect(
+                QRectF(self.data.index[i] - 0.3, self.data.Open[i], 0.6, self.data.Close[i] - self.data.Open[i]))
+
+    def paint(self, p, *args):
+        p.drawPicture(0, 0, self.picture)
+
+    def boundingRect(self):
+        return QRectF(self.picture.boundingRect())
+
+## 时间轴类 由于时间轴需要是 动态的，并且需要输出的是string型，需要 派生与 AXisItem 重载 tickstring Method
+class MyAxisItem(pg.AxisItem):
+    def __init__(self, ticks, *args, **kwargs):
+        pg.AxisItem.__init__(self, *args, **kwargs)
+        self.x_values = [x[0] for x in ticks]
+        self.x_strings = [x[1] for x in ticks]
+
+    def tickStrings(self, values, scale, spacing):
+        strings = []
+        for v in values:
+            vs = v * scale
+            if vs in self.x_values:
+                vstr = self.x_strings[np.abs(self.x_values - vs).argmin()]
+                temp_datetime = datetime.fromtimestamp(datetime.timestamp(vstr))
+                temp_string = temp_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                vstr = temp_string.split()[0]
+            else:
+                vstr = ''
+
+            strings.append(vstr)
+        return strings
+
+## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
+        self.Data = get_stock_history_from_yahoo()
         self.RequestRowKey = {}
         self.OrderRowKey = {}
         self.BatchRowKey = {}  # To manage batch row index
@@ -274,13 +340,36 @@ class Control_sys_Tab(QTabWidget):
 
     def tab2UI(self):
 
-        return
+        layout = QVBoxLayout()
+        item = DrawRecItem(self.Data)
+
+        #         # 设置坐标轴
+        #         x_axis=valid_set.index
+        #         real_axis=valid_set.Date
+        #         axis_min=datetime.timestamp(real_axis[0])
+        #         axis_max=datetime.timestamp(real_axis[len(real_axis)-1])
+        #         ticks=[(i,datetime.timestamp(j)) for i,j in zip(x_axis,real_axis)]
+        #         strAxis=pg.DateAxisItem()
+        #         strAxis.setTicks([ticks])
+        ticks = [(i, j) for i, j in zip(self.Data.index, self.Data.Date)]
+        strAxis = MyAxisItem(ticks, orientation="bottom")
+
+        self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+        #         #self.plt.setXRange(axis_min,axis_max)
+
+        # 将iTem加入到plotwidget控件中
+        self.plt.addItem(item)
+
+        # 将控件添加到pyqt中
+        layout.addWidget(self.plt)
+        # 将layout 布局添加到 tab2中
+        self.tab2.setLayout(layout)
 
     def tab3UI(self):
 
         return
 
-        ##############################################################
+    ##############################################################
 
     #     PyQt5 中的pyQtslot 是python中的decorator，用其可以将一个method 定义为 槽
 
