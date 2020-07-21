@@ -72,6 +72,8 @@ def GetAcctName():
 
     return tb_dict
 
+
+## 从 yahoo 下载数据
 def get_stock_history_from_yahoo(ticker="NFLX"):
     urlstr = "https://finance.yahoo.com/quote/{0}/history?p={0}".format(ticker)
     hdata = pd.read_html(urlstr)[0][:-1]
@@ -82,6 +84,20 @@ def get_stock_history_from_yahoo(ticker="NFLX"):
     hdata_reindexed=hdata.reset_index()
     valid_set = hdata_reindexed.sort_values(by='Date').reset_index(drop=True)
     return valid_set
+
+## 从本地下载数据
+def get_stock_history_from_csv(path="nflx.csv"):
+    temp=pd.read_csv(path,index_col=0)
+    valid_set=temp.sort_values(by='Date').reset_index(drop=True)
+    return valid_set
+
+## 模拟数据流，逐条获取数据
+def get_stock_info():
+    global valid_tuple_list
+    if len(valid_tuple_list)>0:
+        temp=valid_tuple_list[0]
+        valid_tuple_list=valid_tuple_list[1:]
+        return temp
 
 #########################################################################################################
 
@@ -180,20 +196,20 @@ class DrawRecItem(pg.GraphicsObject):
         p1.setPen(pg.mkPen('w'))
         for i in range(len(self.data)):
             # 画一条最大值最小值之间的线
-            p1.drawLine(QPointF(self.data.index[i], self.data.Low[i]), QPointF(self.data.index[i], self.data.High[i]))
+            p1.drawLine(QPointF(i, self.data[i][3]), QPointF(i, self.data[i][2]))
             # 设置画刷颜色
-            if self.data.Open[i] > self.data.Close[i]:
+            if self.data[i][1] > self.data[i][4]:
                 p1.setBrush(pg.mkBrush('g'))
             else:
                 p1.setBrush(pg.mkBrush('r'))
-            p1.drawRect(
-                QRectF(self.data.index[i] - 0.3, self.data.Open[i], 0.6, self.data.Close[i] - self.data.Open[i]))
+            p1.drawRect(QRectF(i - 0.3, self.data[i][1], 0.6, self.data[i][4] - self.data[i][1]))
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
 
     def boundingRect(self):
         return QRectF(self.picture.boundingRect())
+
 
 ## 时间轴类 由于时间轴需要是 动态的，并且需要输出的是string型，需要 派生与 AXisItem 重载 tickstring Method
 class MyAxisItem(pg.AxisItem):
@@ -207,10 +223,7 @@ class MyAxisItem(pg.AxisItem):
         for v in values:
             vs = v * scale
             if vs in self.x_values:
-                vstr = self.x_strings[np.abs(self.x_values - vs).argmin()]
-                temp_datetime = datetime.fromtimestamp(datetime.timestamp(vstr))
-                temp_string = temp_datetime.strftime("%Y-%m-%d %H:%M:%S")
-                vstr = temp_string.split()[0]
+                vstr=self.x_strings[np.abs(self.x_values-vs).argmin()]
             else:
                 vstr = ''
 
@@ -220,23 +233,25 @@ class MyAxisItem(pg.AxisItem):
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
-        self.Data = get_stock_history_from_yahoo()
-        self.RequestRowKey = {}
-        self.OrderRowKey = {}
-        self.BatchRowKey = {}  # To manage batch row index
-        self.ErrorRowKey = {}  # To manage error row index
-        self.BuyBatchValue = {}
-        self.SellBatchValue = {}
-        self.BatchManagers = {}  # To manage value for each batch
-        self.g_CurrRequestRow = 0
-        self.g_CurrOrderRow = 0
-        self.g_CurrBatchRow = 0
-        self.g_CurrErrorRow = 0
+        #         self.RequestRowKey ={}
+        #         self.OrderRowKey  ={}
+        #         self.BatchRowKey  ={}   #To manage batch row index
+        #         self.ErrorRowKey  ={}   #To manage error row index
+        #         self.BuyBatchValue = {}
+        #         self.SellBatchValue= {}
+        #         self.BatchManagers  ={} # To manage value for each batch
+        #         self.g_CurrRequestRow = 0
+        #         self.g_CurrOrderRow  = 0
+        #         self.g_CurrBatchRow  = 0
+        #         self.g_CurrErrorRow  = 0
         super().__init__(parent)
 
         self.setObjectName("Control_system")
         self.resize(1800, 985)
         self.setWindowTitle("实时监控系统")
+
+        # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
+        self.Data = []
 
         # 创建3个选项卡小控件窗口
         self.tab1 = QWidget()
@@ -253,7 +268,7 @@ class Control_sys_Tab(QTabWidget):
         self.tab2UI()
         self.tab3UI()
 
-        self.pushButton.clicked.connect(self.slotStart)
+    ################tab1#################################
 
     def tab1UI(self):
         # 设置主布局
@@ -338,158 +353,62 @@ class Control_sys_Tab(QTabWidget):
 
         self.tab1.setLayout(layout)
 
-    def tab2UI(self):
+    #################tab2#################################
+    # 定义一个计时器
+    def timer_start(self):
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.plotData)
+        self.timer.start(1000)
 
-        layout = QVBoxLayout()
+    def append_stock_data(self):
+        temp = get_stock_info()
+        if temp != None:
+            self.Data.append(temp)
+
+    def plotData(self):
+        # print(len(self.Data))
+        self.layout = QVBoxLayout()
         item = DrawRecItem(self.Data)
 
-        #         # 设置坐标轴
-        #         x_axis=valid_set.index
-        #         real_axis=valid_set.Date
-        #         axis_min=datetime.timestamp(real_axis[0])
-        #         axis_max=datetime.timestamp(real_axis[len(real_axis)-1])
-        #         ticks=[(i,datetime.timestamp(j)) for i,j in zip(x_axis,real_axis)]
-        #         strAxis=pg.DateAxisItem()
-        #         strAxis.setTicks([ticks])
-        ticks = [(i, j) for i, j in zip(self.Data.index, self.Data.Date)]
+        index = range(len(self.Data))
+        time_list = []
+        for i in index:
+            temp = self.Data[i][0]
+            time_list.append(temp)
+        ticks = [(i, j) for i, j in zip(index, time_list)]
         strAxis = MyAxisItem(ticks, orientation="bottom")
 
-        self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
-        #         #self.plt.setXRange(axis_min,axis_max)
+        plt = pg.PlotWidget(axisItems={'bottom': strAxis})
 
         # 将iTem加入到plotwidget控件中
-        self.plt.addItem(item)
+        plt.addItem(item)
 
         # 将控件添加到pyqt中
-        layout.addWidget(self.plt)
+        self.layout.addWidget(plt)
         # 将layout 布局添加到 tab2中
-        self.tab2.setLayout(layout)
+        self.tab2.setLayout(self.layout)
+        self.append_stock_data()
+        self.layout.deleteLater()
+
+    def tab2UI(self):
+        #         self.timer_start()
+        self.timer_start()
 
     def tab3UI(self):
 
         return
 
-    ##############################################################
-
-    #     PyQt5 中的pyQtslot 是python中的decorator，用其可以将一个method 定义为 槽
-
-    #     槽的传参方式 主要是直接传入一个 函数指针
-
-    ##############################################################
-
-    @QtCore.pyqtSlot()
-    def slotStart(self):
-        # 按钮 暂停使用
-        self.pushButton.setEnabled(False)
-        # 开启一个新进程用来 更新数据
-        self.update_data_thread = UpdateData(self)
-        self.update_data_thread.requestChanged.connect(self.onRequestChanged)
-        # 线程进入 准备阶段
-        self.update_data_thread.start()
-
-    @QtCore.pyqtSlot(int, int, str)
-    def onRequestChanged(self, row, msgType, text):
-        elems = text.split(',')
-        # row =0
-        column = 0
-        if (msgType == 1):
-            myKey = self.RequestRowKey.get(elems[2] + elems[3])
-            if (myKey == None):
-                myKey = self.g_CurrRequestRow
-                self.g_CurrRequestRow += 1
-                self.RequestRowKey[elems[2] + elems[3]] = myKey  ### CREATE A REQUEST ROW
-
-            for ele in elems:
-                it = self.tableWidget1.item(myKey, column)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget1.setItem(myKey, column, it)
-                if (column == 0):
-                    it.setText(AcctNameDict[int(ele)])
-                    # print("What is this: %d, and acctName =  %s"%(int(ele),AcctNameDict[int(ele)]))
-                elif (column == 4):
-                    it.setText(directionType[ele])
-                else:
-                    it.setText(ele)
-                column += 1
-            self.tableWidget1.selectRow(myKey)
-
-            myKey = self.BatchRowKey.get(elems[2])
-            if (myKey == None):  ### UPDATE ACCT-BATCH TABLE HERE
-                myKey = self.g_CurrBatchRow
-                self.g_CurrBatchRow += 1
-                self.BatchRowKey[elems[2]] = myKey
-                self.BatchManagers[elems[2]] = BatchManager()  ### CREATE A BATCH MANAGER
-                self.BatchManagers[elems[2]].bookAcctID(int(elems[0]))
-            # print("what is the direction code: %s"%(elems[4]))
-            myTradeDirection = 1.0 if (int(elems[4]) == 0) else -1.0
-            self.BatchManagers[elems[2]].bookTotalValue(elems[3], float(elems[5]) * float(elems[10]) * myTradeDirection)
-            self.BatchManagers[elems[2]].bookTradedValue(elems[3], float(elems[8]))  ### need to change here
-            print(elems[3], float(elems[8]))
-
-            ### FILL INFORMATION IN THIS ROW
-            ###print("GET NOTIONA:",str(self.BatchManagers[elems[2]].getBuyNotional()),str(self.BatchManagers[elems[2]].getSellNotional()))
-            thisAcctID = self.BatchManagers[elems[2]].getAcctID()
-            thisAcctIDStr = AcctNameDict[thisAcctID]
-            vals1 = self.BatchManagers[elems[2]].getBuyNotional()
-            vals2 = self.BatchManagers[elems[2]].getSellNotional()
-            vals = [elems[2], thisAcctIDStr, "{:,.2f}".format(vals1[0]), "{:,.2f}".format(vals2[0]),
-                    "{:.2%}".format(vals1[1]), "{:.2%}".format(vals2[1])]
-            for column in range(0, 6):
-                it = self.tableWidget3.item(myKey, column)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget3.setItem(myKey, column, it)
-                it.setText(vals[column])
-            self.tableWidget3.selectRow(myKey)
-
-        elif (msgType == 2):
-            myKey = self.OrderRowKey.get(elems[0] + elems[1] + elems[12])
-            if (myKey == None):
-                myKey = self.g_CurrOrderRow
-                self.g_CurrOrderRow += 1
-                self.OrderRowKey[elems[0] + elems[1] + elems[12]] = myKey
-            for ele in elems:
-                it = self.tableWidget2.item(myKey, column)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget2.setItem(myKey, column, it)  # can be done in dictionary of dictionary way, better
-                if (column == 3):
-                    it.setText(directionType[ele])
-                elif (column == 4):
-                    it.setText(OpenCloseFlag[ele])
-                elif (column == 5):
-                    it.setText(hedgeFlag[ele])
-                elif (column == 11):
-                    it.setText(orderStatus[ele])
-                else:
-                    it.setText(ele)
-                column += 1
-            self.tableWidget2.selectRow(myKey)
-
-        elif (msgType == 3):
-            myKey = self.ErrorRowKey.get(elems[0] + elems[2])
-            if (myKey == None):
-                myKey = self.g_CurrErrorRow
-                self.g_CurrErrorRow += 1
-                self.ErrorRowKey[elems[0] + elems[2]] = myKey
-            for ele in elems:
-                it = self.tableWidget4.item(myKey, column)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget4.setItem(myKey, column, it)  # can be done in dictionary of dictionary way, better
-                it.setText(ele)
-                column += 1
-            self.tableWidget4.selectRow(myKey)
-        else:
-            self.tableWidget1.selectRow(row)
-
-####################################################################################################################
+    ####################################################################################################################
 
 
 ################################################ main ##############################################################
 
 if __name__ == "__main__":
+    valid_set=get_stock_history_from_csv()
+    valid_tuple_list = []
+    for i in range(len(valid_set)):
+        valid_tuple_list.append(tuple(valid_set.iloc[i]))
+
     AcctNameDict = GetAcctName()#pd.read_csv("./depend/accountMap.txt")
     AcctNameDict[0] = "UNKNOWN"
     print(AcctNameDict.keys())
