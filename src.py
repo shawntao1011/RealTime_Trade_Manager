@@ -232,7 +232,7 @@ class MyAxisItem(pg.AxisItem):
 
 #### tab2 线程############################
 class Update_tab2(QtCore.QThread):
-    requestChange = QtCore.pyqtSignal(str)
+    requestChange = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super(Update_tab2, self).__init__(parent)
@@ -247,23 +247,24 @@ class Update_tab2(QtCore.QThread):
         for i in range(20):
             time.sleep(1)
             # 通过自定义信号把待显示的字符串传递给槽函数
-            self.requestChange.emit(str(i))
+            self.requestChange.emit()
 
 
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
+## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
-        self.RequestRowKey ={}
-        self.OrderRowKey  ={}
-        self.BatchRowKey  ={}   #To manage batch row index
-        self.ErrorRowKey  ={}   #To manage error row index
+        self.RequestRowKey = {}
+        self.OrderRowKey = {}
+        self.BatchRowKey = {}  # To manage batch row index
+        self.ErrorRowKey = {}  # To manage error row index
         self.BuyBatchValue = {}
-        self.SellBatchValue= {}
-        self.BatchManagers  ={} # To manage value for each batch
+        self.SellBatchValue = {}
+        self.BatchManagers = {}  # To manage value for each batch
         self.g_CurrRequestRow = 0
-        self.g_CurrOrderRow  = 0
-        self.g_CurrBatchRow  = 0
-        self.g_CurrErrorRow  = 0
+        self.g_CurrOrderRow = 0
+        self.g_CurrBatchRow = 0
+        self.g_CurrErrorRow = 0
         super().__init__(parent)
 
         self.setObjectName("Control_system")
@@ -281,9 +282,8 @@ class Control_sys_Tab(QTabWidget):
         self.addTab(self.tab3, "PNL定时发送")
 
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
-        self.Data=[]
-        self.work=Update_tab2()
-        self.execute()
+        self.Data = []
+        self.work = Update_tab2()
 
         # 每个选项卡自定义的内容
         self.tab1UI()
@@ -291,6 +291,7 @@ class Control_sys_Tab(QTabWidget):
         self.tab3UI()
 
         self.pushButton.clicked.connect(self.slotStart)
+
     ################tab1#################################
 
     def tab1UI(self):
@@ -385,17 +386,17 @@ class Control_sys_Tab(QTabWidget):
         # 线程自定义信号连接的槽函数
         self.work.requestChange.connect(self.display)
 
-    def display(self, str):
-        # 由于自定义信号时自动传递一个字符串参数，所以在这个槽函数中要接受一个参数
-        print(str)
-
+    def display(self):
+        # 由于自定义信号时自动传递0个字符串参数，所以在这个槽函数中要接受0个参数
+        self.plotData()
 
     ########################################
     # 定义一个计时器
-    def timer_start(self):
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.plotData)
-        self.timer.start(1000)
+    #     def timer_start(self):
+
+    #         self.timer = QtCore.QTimer(self)
+    #         self.timer.timeout.connect(self.plotData)
+    #         self.timer.start(1000)
 
     def append_stock_data(self):
         temp = get_stock_info()
@@ -404,8 +405,10 @@ class Control_sys_Tab(QTabWidget):
 
     def plotData(self):
         # print(len(self.Data))
-        self.layout = QVBoxLayout()
         item = DrawRecItem(self.Data)
+
+        for i in range(self.layout2.count()):
+            self.layout2.itemAt(i).widget().deleteLater()
 
         index = range(len(self.Data))
         time_list = []
@@ -421,16 +424,16 @@ class Control_sys_Tab(QTabWidget):
         plt.addItem(item)
 
         # 将控件添加到pyqt中
-        self.layout.addWidget(plt)
+        self.layout2.addWidget(plt)
         # 将layout 布局添加到 tab2中
-        self.tab2.setLayout(self.layout)
+        self.tab2.setLayout(self.layout2)
         self.append_stock_data()
-        self.layout.deleteLater()
 
     def tab2UI(self):
         #         self.timer_start()
         self.layout2 = QVBoxLayout()
-        #self.timer_start()
+        # self.timer_start()
+        self.execute()
 
     def tab3UI(self):
 
