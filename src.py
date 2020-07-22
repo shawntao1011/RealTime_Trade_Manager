@@ -193,7 +193,7 @@ class DrawRecItem(pg.GraphicsObject):
         p1 = QPainter(self.picture)
 
         # 设置画pen 颜色，用来画线
-        p1.setPen(pg.mkPen('w'))
+        p1.setPen(pg.mkPen((0,0,0,)))
         for i in range(len(self.data)):
             # 画一条最大值最小值之间的线
             p1.drawLine(QPointF(i, self.data[i][3]), QPointF(i, self.data[i][2]))
@@ -289,6 +289,7 @@ class Control_sys_Tab(QTabWidget):
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
         self.Data = []
         self.work = Update_tab2()
+        self.label = pg.TextItem()
 
         # 每个选项卡自定义的内容
         self.tab1UI()
@@ -384,9 +385,8 @@ class Control_sys_Tab(QTabWidget):
 
     #################tab2#################################
     ######################################
-    #################tab2#################################
-    ######################################
-    # 测试线程用代码
+
+    ### 测试线程用代码
     def execute(self):
         # 启动线程
         self.work.start()
@@ -405,6 +405,46 @@ class Control_sys_Tab(QTabWidget):
     #         self.timer = QtCore.QTimer(self)
     #         self.timer.timeout.connect(self.plotData)
     #         self.timer.start(1000)
+    #####################################################
+
+    ################绘图用函数############################
+    def print_slot(self, event=None):
+        if event is None:
+            print("事件为空")
+        else:
+
+            pos = event[0]  # 鼠标的位置为event的第一个值
+            try:
+                if self.plt.sceneBoundingRect().contains(pos):
+                    # 一个文本项 用来展示十字对应的信息
+
+                    #                     print(pos)
+                    mousePoint = self.plt.plotItem.vb.mapSceneToView(pos)  # 转换鼠标坐标
+                    index = int(mousePoint.x())  # 鼠标所处的X轴坐标
+                    pos_y = int(mousePoint.y())  # 鼠标所处的Y轴坐标
+                    if -1 < index < len(self.Data):
+                        # 在label中写入HTML
+                        self.label.setHtml(
+                            "<p style='color:black'><strong>日期：{0}</strong></p><p style='color:black'>\
+                            开盘：{1}</p><p style='color:black'>\
+                            收盘：{2}</p><p style='color:black'>\
+                            最高价：<span style='color:red;'>{3}</span></p><p style='color:black'>\
+                            最低价：<span style='color:green;'>{4}</span></p>".format(
+                                self.Data[index][0], self.Data[index][1], self.Data[index][4],
+                                self.Data[index][2], self.Data[index][3]))
+                        self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
+                        # print(self.label)
+
+                    ## 将label添加进 plt
+                    self.plt.addItem(self.label)
+                    # print(self.plt.listDataItems())
+                    # 设置垂直线条和水平线条的位置组成十字光标
+                    self.vLine.setPos(mousePoint.x())
+                    self.hLine.setPos(mousePoint.y())
+            except Exception as e:
+                print("error in print_slot")
+
+    ######################################################
 
     def append_stock_data(self):
         temp = get_stock_info()
@@ -428,16 +468,25 @@ class Control_sys_Tab(QTabWidget):
             ticks = [(i, j) for i, j in zip(index, time_list)]
             strAxis = MyAxisItem(ticks, orientation="bottom")
 
-            plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+            self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+
+            ## 设置背景颜色
+            self.plt.setBackground((255, 255, 255))
 
             # 将iTem加入到plotwidget控件中
-            plt.addItem(item)
+            self.plt.addItem(item)
 
             # 将控件添加到pyqt中
-            self.layout2.addWidget(plt)
+            self.layout2.addWidget(self.plt)
             # 将layout 布局添加到 tab2中
             self.tab2.setLayout(self.layout2)
             self.Data.append(new_data)
+
+            self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
+            self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
+            self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
+            self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
+            self.move_slot = pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
 
     def tab2UI(self):
         #         self.timer_start()
