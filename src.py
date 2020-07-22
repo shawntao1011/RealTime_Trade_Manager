@@ -232,7 +232,11 @@ class MyAxisItem(pg.AxisItem):
 
 #### tab2 线程############################
 class Update_tab2(QtCore.QThread):
+<<<<<<< HEAD
     requestChange = QtCore.pyqtSignal(tuple)
+=======
+    requestChange = QtCore.pyqtSignal()
+>>>>>>> eaff5126f2a44051aaa297f8ff8722d6bc9948d2
 
     def __init__(self, parent=None):
         super(Update_tab2, self).__init__(parent)
@@ -244,6 +248,7 @@ class Update_tab2(QtCore.QThread):
         self.wait()
 
     def run(self):
+<<<<<<< HEAD
         while True:
             new_data = get_stock_info()
             # 如果一直无信息发送过来，则等待
@@ -254,8 +259,15 @@ class Update_tab2(QtCore.QThread):
             else:
                 # 通过自定义信号把待显示的字符串传递给槽函数
                 self.requestChange.emit(new_data)
+=======
+        for i in range(20):
+            time.sleep(1)
+            # 通过自定义信号把待显示的字符串传递给槽函数
+            self.requestChange.emit()
+>>>>>>> eaff5126f2a44051aaa297f8ff8722d6bc9948d2
 
 
+## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
@@ -393,10 +405,16 @@ class Control_sys_Tab(QTabWidget):
         # 线程自定义信号连接的槽函数
         self.work.requestChange.connect(self.display)
 
+<<<<<<< HEAD
     def display(self, new_data):
         # 由于自定义信号时自动传递0个字符串参数，所以在这个槽函数中要接受0个参数
         # print(new_data)
         self.plotData(new_data)
+=======
+    def display(self):
+        # 由于自定义信号时自动传递0个字符串参数，所以在这个槽函数中要接受0个参数
+        self.plotData()
+>>>>>>> eaff5126f2a44051aaa297f8ff8722d6bc9948d2
 
     ########################################
     # 定义一个计时器
@@ -413,12 +431,27 @@ class Control_sys_Tab(QTabWidget):
 
     def plotData(self, new_data):
         # print(len(self.Data))
+<<<<<<< HEAD
         if new_data != None:
             item = DrawRecItem(self.Data)
 
             ## 清空layout2 以重新插入图片
             for i in range(self.layout2.count()):
                 self.layout2.itemAt(i).widget().deleteLater()
+=======
+        item = DrawRecItem(self.Data)
+
+        for i in range(self.layout2.count()):
+            self.layout2.itemAt(i).widget().deleteLater()
+
+        index = range(len(self.Data))
+        time_list = []
+        for i in index:
+            temp = self.Data[i][0]
+            time_list.append(temp)
+        ticks = [(i, j) for i, j in zip(index, time_list)]
+        strAxis = MyAxisItem(ticks, orientation="bottom")
+>>>>>>> eaff5126f2a44051aaa297f8ff8722d6bc9948d2
 
             index = range(len(self.Data))
             time_list = []
@@ -430,6 +463,7 @@ class Control_sys_Tab(QTabWidget):
 
             plt = pg.PlotWidget(axisItems={'bottom': strAxis})
 
+<<<<<<< HEAD
             # 将iTem加入到plotwidget控件中
             plt.addItem(item)
 
@@ -438,6 +472,13 @@ class Control_sys_Tab(QTabWidget):
             # 将layout 布局添加到 tab2中
             self.tab2.setLayout(self.layout2)
             self.Data.append(new_data)
+=======
+        # 将控件添加到pyqt中
+        self.layout2.addWidget(plt)
+        # 将layout 布局添加到 tab2中
+        self.tab2.setLayout(self.layout2)
+        self.append_stock_data()
+>>>>>>> eaff5126f2a44051aaa297f8ff8722d6bc9948d2
 
     def tab2UI(self):
         #         self.timer_start()
