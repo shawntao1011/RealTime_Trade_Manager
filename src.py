@@ -192,17 +192,32 @@ class DrawRecItem(pg.GraphicsObject):
         self.picture = QPicture()
         p1 = QPainter(self.picture)
 
+        ### 画k线图 ##########
+
         # 设置画pen 颜色，用来画线
-        p1.setPen(pg.mkPen((0,0,0,)))
-        for i in range(len(self.data)):
-            # 画一条最大值最小值之间的线
-            p1.drawLine(QPointF(i, self.data[i][3]), QPointF(i, self.data[i][2]))
-            # 设置画刷颜色
-            if self.data[i][1] > self.data[i][4]:
-                p1.setBrush(pg.mkBrush('g'))
-            else:
-                p1.setBrush(pg.mkBrush('r'))
-            p1.drawRect(QRectF(i - 0.3, self.data[i][1], 0.6, self.data[i][4] - self.data[i][1]))
+        # 颜色代码使用 RGB值，缩写，都可以
+        #         p1.setPen(pg.mkPen((0,0,0)))
+        #         for i in range(len(self.data)):
+        #             #画一条最大值最小值之间的线
+        #             p1.drawLine(QPointF(i,self.data[i][3]),QPointF(i,self.data[i][2]))
+        #             # 设置画刷颜色
+        #             if self.data[i][1]>self.data[i][4]:
+        #                 p1.setBrush(pg.mkBrush('g'))
+        #             else:
+        #                 p1.setBrush(pg.mkBrush('r'))
+        #             p1.drawRect(QRectF(i-0.3,self.data[i][1],0.6,self.data[i][4]-self.data[i][1]))
+
+        #### 画自定义的线 ####################
+
+        ## close 线
+        p1.setPen(pg.mkPen(0, 0, 255))
+        for i in range(len(self.data) - 1):
+            p1.drawLine(QPointF(i, self.data[i][4]), QPointF(i + 1, self.data[i + 1][4]))
+
+        ## low 线
+        p1.setPen(pg.mkPen(0, 255, 0))
+        for i in range(len(self.data) - 1):
+            p1.drawLine(QPointF(i, self.data[i][3]), QPointF(i + 1, self.data[i + 1][3]))
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
@@ -230,6 +245,7 @@ class MyAxisItem(pg.AxisItem):
             strings.append(vstr)
         return strings
 
+
 #### tab2 线程############################
 class Update_tab2(QtCore.QThread):
     requestChange = QtCore.pyqtSignal(tuple)
@@ -244,16 +260,35 @@ class Update_tab2(QtCore.QThread):
         self.wait()
 
     def run(self):
+        #         context = zmq.Context()
+        #         sock = context.socket(zmq.SUB)
+        #         sock.setsockopt(zmq.SUBSCRIBE, b"FLOW")
+        #         sock.setsockopt(zmq.HEARTBEAT_IVL,     5000)
+        #         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
+
+        #         sock.connect("tcp://192.168.0.32:19006")
         while True:
+            #             sss=sock.recv()
+            #             msg = sss.decode("ascii").split(",")
+            #             new_data=[]
+            #             new_data.append(msg[1])#time
+            #             new_data.append(float(msg[2]))#open
+            #             new_data.append(float(msg[3])*1.01)#high
+            #             new_data.append(float(msg[4])*0.99)#low
+            #             new_data.append(float(msg[5]))#close
             new_data = get_stock_info()
+            #             for i in msg[2:]:
+            #                 new_data.append(float(i))
+
             # 如果一直无信息发送过来，则等待
             if new_data is None:
-                #print("waiting for new msg")
+                # print("waiting for new msg")
                 time.sleep(1)
                 continue
             else:
                 # 通过自定义信号把待显示的字符串传递给槽函数
-                self.requestChange.emit(new_data)
+                print(tuple(new_data))
+                self.requestChange.emit(tuple(new_data))
 
 
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
@@ -283,8 +318,8 @@ class Control_sys_Tab(QTabWidget):
 
         # 将三个选项卡添加到顶层窗口中
         self.addTab(self.tab1, "交易界面")
-        self.addTab(self.tab2, "PNL展示界面")
-        self.addTab(self.tab3, "PNL定时发送")
+        self.addTab(self.tab2, "损益界面")
+        self.addTab(self.tab3, "风险分析")
 
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
         self.Data = []
@@ -425,7 +460,7 @@ class Control_sys_Tab(QTabWidget):
                     if -1 < index < len(self.Data):
                         # 在label中写入HTML
                         self.label.setHtml(
-                            "<p style='color:black'><strong>日期：{0}</strong></p><p style='color:black'>\
+                            "<p style='color:black'><strong>时间：{0}</strong></p><p style='color:black'>\
                             开盘：{1}</p><p style='color:black'>\
                             收盘：{2}</p><p style='color:black'>\
                             最高价：<span style='color:red;'>{3}</span></p><p style='color:black'>\
@@ -469,6 +504,7 @@ class Control_sys_Tab(QTabWidget):
             strAxis = MyAxisItem(ticks, orientation="bottom")
 
             self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+            self.plt2 = pg.PlotWidget()
 
             ## 设置背景颜色
             self.plt.setBackground((255, 255, 255))
@@ -477,7 +513,11 @@ class Control_sys_Tab(QTabWidget):
             self.plt.addItem(item)
 
             # 将控件添加到pyqt中
-            self.layout2.addWidget(self.plt)
+            self.layout2.addWidget(self.plt, 0, 0)
+
+            # 控件2
+            self.layout2.addWidget(self.plt2, 0, 1)
+
             # 将layout 布局添加到 tab2中
             self.tab2.setLayout(self.layout2)
             self.Data.append(new_data)
@@ -490,7 +530,7 @@ class Control_sys_Tab(QTabWidget):
 
     def tab2UI(self):
         #         self.timer_start()
-        self.layout2 = QVBoxLayout()
+        self.layout2 = QGridLayout()
         # self.timer_start()
         self.execute()
 
@@ -612,7 +652,8 @@ class Control_sys_Tab(QTabWidget):
             self.tableWidget4.selectRow(myKey)
         else:
             self.tableWidget1.selectRow(row)
-#####################################################################################################################
+
+####################################################################################################################
 
 ################################################ main ##############################################################
 
