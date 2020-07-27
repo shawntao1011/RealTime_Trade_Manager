@@ -99,6 +99,12 @@ def get_stock_info():
         valid_tuple_list=valid_tuple_list[1:]
         return temp
 
+
+## 获取config
+def read_config():
+    config=pd.read_csv("./depend/socket.txt",header=None)
+    return list(config[0])
+
 #########################################################################################################
 
 ################################### Self-design classes #################################################
@@ -286,9 +292,10 @@ class MyAxisItem(pg.AxisItem):
 class Update_tab2(QtCore.QThread):
     requestChange = QtCore.pyqtSignal(str, tuple)
 
-    def __init__(self, parent=None):
+    def __init__(self, config, parent=None):
         super(Update_tab2, self).__init__(parent)
         # 设置工作状态与初始num数值
+        self.config = config
 
     def __del__(self):
         # 线程状态改变与线程终止
@@ -298,16 +305,15 @@ class Update_tab2(QtCore.QThread):
     def run(self):
         context = zmq.Context()
         sock = context.socket(zmq.SUB)
-        sock.setsockopt(zmq.SUBSCRIBE, b"FLOW")
-        sock.setsockopt(zmq.SUBSCRIBE, b"FLML")
-        sock.setsockopt(zmq.SUBSCRIBE, b"ML")
+        for i in self.config:
+            sock.setsockopt(zmq.SUBSCRIBE, i.encode())
         sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
 
         sock.connect("tcp://192.168.0.32:19006")
         #         for i in range(100):
         while True:
-            msg = get_stock_info()
+            # msg=get_stock_info()
             sss = sock.recv()
             msg = sss.decode("ascii").split(",")
             new_data_FLOW = []
@@ -319,8 +325,7 @@ class Update_tab2(QtCore.QThread):
                 for i in msg[2:]:
                     new_data_FLOW.append(float(i) * 10000)
                 print('FLOW ', new_data_FLOW)
-                # 通过自定义信号把待显示的字符串传递给槽函数
-                # print(tuple(new_data_FLOW))
+
                 self.requestChange.emit('FLOW', tuple(new_data_FLOW))
             if msg[0] == 'FLML':
                 new_data_FLML.append(msg[1])
@@ -328,7 +333,6 @@ class Update_tab2(QtCore.QThread):
                     new_data_FLML.append(float(i) * 10000)
                 print('FLML ', new_data_FLML)
                 self.requestChange.emit('FLML', tuple(new_data_FLML))
-                # print('FLML ',new_data_FLML)
             if msg[0] == 'ML':
                 new_data_ML.append(msg[1])
                 for i in msg[2:]:
@@ -342,10 +346,11 @@ class Update_tab2(QtCore.QThread):
 #                 self.requestChange.emit('TEST',tuple(msg[1:]))
 #                 #print('ML ',new_data_ML)
 
-
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
+
+        self.Data = {}
         self.RequestRowKey = {}
         self.OrderRowKey = {}
         self.BatchRowKey = {}  # To manage batch row index
@@ -378,11 +383,10 @@ class Control_sys_Tab(QTabWidget):
         self.addTab(self.tab3, "风险分析")
 
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
-        self.Data = {"FLOW": [],
-                     "FLML": [],
-                     "ML": [],
-                     "TEST": []}
-        self.work = Update_tab2()
+        self.config = read_config()
+        for i in self.config:
+            self.Data[i] = []
+        self.work = Update_tab2(self.config)
         self.label = pg.TextItem()
 
         # 每个选项卡自定义的内容
@@ -743,7 +747,6 @@ class Control_sys_Tab(QTabWidget):
             self.tableWidget4.selectRow(myKey)
         else:
             self.tableWidget1.selectRow(row)
-
 ####################################################################################################################
 
 ################################################ main ##############################################################
