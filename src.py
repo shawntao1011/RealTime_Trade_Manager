@@ -146,41 +146,68 @@ class BatchManager():
     def getAcctID(self):
         return self.AcctID;
 
-## updateData 类 继承于 qthread 负责实时更新数据
-class UpdateData(QtCore.QThread):
-    requestChanged = QtCore.pyqtSignal(int, int, str)  # rowIndex, msgType,msg
+
+#### tab2 线程############################
+class Update_tab2(QtCore.QThread):
+    requestChange = QtCore.pyqtSignal(str, tuple)
+
+    def __init__(self, parent=None):
+        super(Update_tab2, self).__init__(parent)
+        # 设置工作状态与初始num数值
+
+    def __del__(self):
+        # 线程状态改变与线程终止
+        self.working = False
+        self.wait()
 
     def run(self):
-        requestChanged = QtCore.pyqtSignal(int, int, str)
         context = zmq.Context()
         sock = context.socket(zmq.SUB)
-        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_SubOda")
-        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Request")
-        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Error")
-        sock.setsockopt(zmq.HEARTBEAT_IVL,     5000)
+        sock.setsockopt(zmq.SUBSCRIBE, b"FLOW")
+        sock.setsockopt(zmq.SUBSCRIBE, b"FLML")
+        sock.setsockopt(zmq.SUBSCRIBE, b"ML")
+        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
-        #print("hello")
-        sock.connect("tcp://192.168.0.66:15300")
-        sock.connect("tcp://117.185.37.175:51336")
-		### DOUBLE RQID Problem
 
+        sock.connect("tcp://192.168.0.32:19006")
+        #         for i in range(100):
         while True:
-            msg = sock.recv()
-            msgs = msg.decode("ascii").split("|")
-            #msgs= msg.split(',')
-            #self.dataChanged.emit(2, 2, msgs[0])
-            print(msgs[0],msgs[1])
-            if(msgs[0] == "EMS_GUI_Request"):
-                self.requestChanged.emit(1,1, msgs[1])
-                print(msgs[1])
-            elif(msgs[0] == "EMS_GUI_SubOda"):
-                self.requestChanged.emit(2,2, msgs[1])
-                print(msgs[1])
-            elif(msgs[0] == "EMS_GUI_Error"):
-                self.requestChanged.emit(2,3, msgs[1])
-                print(msgs[1])
+            msg = get_stock_info()
+            sss = sock.recv()
+            msg = sss.decode("ascii").split(",")
+            new_data_FLOW = []
+            new_data_FLML = []
+            new_data_ML = []
+            print(msg)
+            if msg[0] == 'FLOW':
+                new_data_FLOW.append(msg[1])
+                for i in msg[2:]:
+                    new_data_FLOW.append(float(i) * 10000)
+                print('FLOW ', new_data_FLOW)
+                # 通过自定义信号把待显示的字符串传递给槽函数
+                # print(tuple(new_data_FLOW))
+                self.requestChange.emit('FLOW', tuple(new_data_FLOW))
+            if msg[0] == 'FLML':
+                new_data_FLML.append(msg[1])
+                for i in msg[2:]:
+                    new_data_FLML.append(float(i) * 10000)
+                print('FLML ', new_data_FLML)
+                self.requestChange.emit('FLML', tuple(new_data_FLML))
+                # print('FLML ',new_data_FLML)
+            if msg[0] == 'ML':
+                new_data_ML.append(msg[1])
+                for i in msg[2:]:
+                    new_data_ML.append(float(i) * 10000)
+                print('ML ', new_data_ML)
+                self.requestChange.emit('ML', tuple(new_data_ML))
 
-## 绘制图形用的 class 该类目前生成了k线图
+
+#             if msg!= None and msg[0]=='TEST':
+#                 print(tuple(msg[1:]))
+#                 self.requestChange.emit('TEST',tuple(msg[1:]))
+#                 #print('ML ',new_data_ML)
+
+
 class DrawRecItem(pg.GraphicsObject):
     def __init__(self, data):
         super().__init__()
@@ -208,16 +235,25 @@ class DrawRecItem(pg.GraphicsObject):
         #             p1.drawRect(QRectF(i-0.3,self.data[i][1],0.6,self.data[i][4]-self.data[i][1]))
 
         #### 画自定义的线 ####################
+        #          ## TEST close线
+        #         p1.setPen(pg.mkPen(255,0,0))
+        #         for i in range(len(self.data['TEST'])-1):
+        #             p1.drawLine(QPointF(i,self.data['TEST'][i][4]),QPointF(i+1,self.data['TEST'][i+1][4]))
 
-        ## close 线
-        p1.setPen(pg.mkPen(0, 0, 255))
-        for i in range(len(self.data) - 1):
-            p1.drawLine(QPointF(i, self.data[i][4]), QPointF(i + 1, self.data[i + 1][4]))
+        ## FLOW  close线
+        p1.setPen(pg.mkPen(255, 0, 0))
+        for i in range(len(self.data['FLOW']) - 1):
+            p1.drawLine(QPointF(i, self.data['FLOW'][i][4]), QPointF(i + 1, self.data['FLOW'][i + 1][4]))
 
-        ## low 线
+        ## FLML  close线
         p1.setPen(pg.mkPen(0, 255, 0))
-        for i in range(len(self.data) - 1):
-            p1.drawLine(QPointF(i, self.data[i][3]), QPointF(i + 1, self.data[i + 1][3]))
+        for i in range(len(self.data['FLML']) - 1):
+            p1.drawLine(QPointF(i, self.data['FLML'][i][4]), QPointF(i + 1, self.data['FLML'][i + 1][4]))
+
+        ## ML  close线
+        p1.setPen(pg.mkPen(0, 0, 255))
+        for i in range(len(self.data['ML']) - 1):
+            p1.drawLine(QPointF(i, self.data['ML'][i][4]), QPointF(i + 1, self.data['ML'][i + 1][4]))
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
@@ -248,7 +284,7 @@ class MyAxisItem(pg.AxisItem):
 
 #### tab2 线程############################
 class Update_tab2(QtCore.QThread):
-    requestChange = QtCore.pyqtSignal(tuple)
+    requestChange = QtCore.pyqtSignal(str, tuple)
 
     def __init__(self, parent=None):
         super(Update_tab2, self).__init__(parent)
@@ -260,35 +296,51 @@ class Update_tab2(QtCore.QThread):
         self.wait()
 
     def run(self):
-        #         context = zmq.Context()
-        #         sock = context.socket(zmq.SUB)
-        #         sock.setsockopt(zmq.SUBSCRIBE, b"FLOW")
-        #         sock.setsockopt(zmq.HEARTBEAT_IVL,     5000)
-        #         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
+        context = zmq.Context()
+        sock = context.socket(zmq.SUB)
+        sock.setsockopt(zmq.SUBSCRIBE, b"FLOW")
+        sock.setsockopt(zmq.SUBSCRIBE, b"FLML")
+        sock.setsockopt(zmq.SUBSCRIBE, b"ML")
+        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
+        sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
 
-        #         sock.connect("tcp://192.168.0.32:19006")
+        sock.connect("tcp://192.168.0.32:19006")
+        #         for i in range(100):
         while True:
-            #             sss=sock.recv()
-            #             msg = sss.decode("ascii").split(",")
-            #             new_data=[]
-            #             new_data.append(msg[1])#time
-            #             new_data.append(float(msg[2]))#open
-            #             new_data.append(float(msg[3])*1.01)#high
-            #             new_data.append(float(msg[4])*0.99)#low
-            #             new_data.append(float(msg[5]))#close
-            new_data = get_stock_info()
-            #             for i in msg[2:]:
-            #                 new_data.append(float(i))
-
-            # 如果一直无信息发送过来，则等待
-            if new_data is None:
-                # print("waiting for new msg")
-                time.sleep(1)
-                continue
-            else:
+            msg = get_stock_info()
+            sss = sock.recv()
+            msg = sss.decode("ascii").split(",")
+            new_data_FLOW = []
+            new_data_FLML = []
+            new_data_ML = []
+            print(msg)
+            if msg[0] == 'FLOW':
+                new_data_FLOW.append(msg[1])
+                for i in msg[2:]:
+                    new_data_FLOW.append(float(i) * 10000)
+                print('FLOW ', new_data_FLOW)
                 # 通过自定义信号把待显示的字符串传递给槽函数
-                print(tuple(new_data))
-                self.requestChange.emit(tuple(new_data))
+                # print(tuple(new_data_FLOW))
+                self.requestChange.emit('FLOW', tuple(new_data_FLOW))
+            if msg[0] == 'FLML':
+                new_data_FLML.append(msg[1])
+                for i in msg[2:]:
+                    new_data_FLML.append(float(i) * 10000)
+                print('FLML ', new_data_FLML)
+                self.requestChange.emit('FLML', tuple(new_data_FLML))
+                # print('FLML ',new_data_FLML)
+            if msg[0] == 'ML':
+                new_data_ML.append(msg[1])
+                for i in msg[2:]:
+                    new_data_ML.append(float(i) * 10000)
+                print('ML ', new_data_ML)
+                self.requestChange.emit('ML', tuple(new_data_ML))
+
+
+#             if msg!= None and msg[0]=='TEST':
+#                 print(tuple(msg[1:]))
+#                 self.requestChange.emit('TEST',tuple(msg[1:]))
+#                 #print('ML ',new_data_ML)
 
 
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
@@ -307,6 +359,10 @@ class Control_sys_Tab(QTabWidget):
         self.g_CurrErrorRow = 0
         super().__init__(parent)
 
+        #         # 设置sizepolicy
+        #         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+        #                                                  QtWidgets.QSizePolicy.MinimumExpanding))
+
         self.setObjectName("Control_system")
         self.resize(1800, 985)
         self.setWindowTitle("实时监控系统")
@@ -322,7 +378,10 @@ class Control_sys_Tab(QTabWidget):
         self.addTab(self.tab3, "风险分析")
 
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
-        self.Data = []
+        self.Data = {"FLOW": [],
+                     "FLML": [],
+                     "ML": [],
+                     "TEST": []}
         self.work = Update_tab2()
         self.label = pg.TextItem()
 
@@ -428,10 +487,10 @@ class Control_sys_Tab(QTabWidget):
         # 线程自定义信号连接的槽函数
         self.work.requestChange.connect(self.display)
 
-    def display(self, new_data):
+    def display(self, biaoji, new_data):
         # 由于自定义信号时自动传递0个字符串参数，所以在这个槽函数中要接受0个参数
         # print(new_data)
-        self.plotData(new_data)
+        self.plotData(biaoji, new_data)
 
     ########################################
     # 定义一个计时器
@@ -449,35 +508,63 @@ class Control_sys_Tab(QTabWidget):
         else:
 
             pos = event[0]  # 鼠标的位置为event的第一个值
-            try:
-                if self.plt.sceneBoundingRect().contains(pos):
-                    # 一个文本项 用来展示十字对应的信息
+            #             try:
+            if self.plt.sceneBoundingRect().contains(pos):
+                # 一个文本项 用来展示十字对应的信息
+                min_len = min(len(self.Data[k]) for k in self.Data.keys())
+                max_len = max(len(self.Data[k]) for k in self.Data.keys())
 
-                    #                     print(pos)
-                    mousePoint = self.plt.plotItem.vb.mapSceneToView(pos)  # 转换鼠标坐标
-                    index = int(mousePoint.x())  # 鼠标所处的X轴坐标
-                    pos_y = int(mousePoint.y())  # 鼠标所处的Y轴坐标
-                    if -1 < index < len(self.Data):
-                        # 在label中写入HTML
-                        self.label.setHtml(
-                            "<p style='color:black'><strong>时间：{0}</strong></p><p style='color:black'>\
-                            开盘：{1}</p><p style='color:black'>\
-                            收盘：{2}</p><p style='color:black'>\
-                            最高价：<span style='color:red;'>{3}</span></p><p style='color:black'>\
-                            最低价：<span style='color:green;'>{4}</span></p>".format(
-                                self.Data[index][0], self.Data[index][1], self.Data[index][4],
-                                self.Data[index][2], self.Data[index][3]))
-                        self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
-                        # print(self.label)
+                #                     print(pos)
+                mousePoint = self.plt.plotItem.vb.mapSceneToView(pos)  # 转换鼠标坐标
+                index = int(mousePoint.x())  # 鼠标所处的X轴坐标
+                pos_y = int(mousePoint.y())  # 鼠标所处的Y轴坐标
 
-                    ## 将label添加进 plt
-                    self.plt.addItem(self.label)
-                    # print(self.plt.listDataItems())
-                    # 设置垂直线条和水平线条的位置组成十字光标
-                    self.vLine.setPos(mousePoint.x())
-                    self.hLine.setPos(mousePoint.y())
-            except Exception as e:
-                print("error in print_slot")
+                # 当时间线统一时
+                # 需要重定位，定位到最近的曲线
+                # print('max_len ',min_len)
+                if -1 < index < min_len:
+                    # print('index ',index)
+                    max_index = max(self.Data, key=lambda k: abs(self.Data[k][index][4] - pos_y))
+
+                    # 在label中写入HTML
+                    self.label.setHtml(
+                        "<p style='color:black'><strong>数据源：{0}\
+                        <p style='color:black'><strong>时间：{1}</strong></p><p style='color:black'>\
+                        开盘：{2}</p><p style='color:black'>\
+                        收盘：{3}</p><p style='color:black'>\
+                        最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
+                        最低价：<span style='color:green;'>{5}</span></p>".format(
+                            max_index, self.Data[max_index][index][0], self.Data[max_index][index][1],
+                            self.Data[max_index][index][4],
+                            self.Data[max_index][index][2], self.Data[max_index][index][3]))
+                    self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
+                    # print(self.label)
+
+                # 当时间线不统一时,只显示数据最多的
+                if min_len < index < max_len:
+                    max_index = max(self.Data, key=lambda k: len(self.Data[k]))
+                    # 在label中写入HTML
+                    self.label.setHtml(
+                        "<p style='color:black'><strong>数据源：{0}\
+                        <p style='color:black'><strong>时间：{1}</strong></p><p style='color:black'>\
+                        开盘：{2}</p><p style='color:black'>\
+                        收盘：{3}</p><p style='color:black'>\
+                        最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
+                        最低价：<span style='color:green;'>{5}</span></p>".format(
+                            max_index, self.Data[max_index][index][0], self.Data[max_index][index][1],
+                            self.Data[max_index][index][4],
+                            self.Data[max_index][index][2], self.Data[max_index][index][3]))
+                    self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
+
+                ## 将label添加进 plt
+                self.plt.addItem(self.label)
+                # print(self.plt.listDataItems())
+                # 设置垂直线条和水平线条的位置组成十字光标
+                self.vLine.setPos(mousePoint.x())
+                self.hLine.setPos(mousePoint.y())
+
+    #             except Exception as e:
+    #                 print("error in print_slot")
 
     ######################################################
 
@@ -486,23 +573,28 @@ class Control_sys_Tab(QTabWidget):
         if temp != None:
             self.Data.append(temp)
 
-    def plotData(self, new_data):
+    def plotData(self, biaoji, new_data):
         # print(len(self.Data))
         if new_data != None:
+            self.Data[biaoji].append(new_data)
+
             item = DrawRecItem(self.Data)
 
             ## 清空layout2 以重新插入图片
             for i in range(self.layout2.count()):
                 self.layout2.itemAt(i).widget().deleteLater()
 
-            index = range(len(self.Data))
+            ## 由于新添了
+            max_len = max(len(self.Data[k]) for k in self.Data.keys())
+            max_index = max(self.Data, key=lambda k: len(self.Data[k]))
+
+            index = range(max_len)
             time_list = []
             for i in index:
-                temp = self.Data[i][0]
+                temp = self.Data[max_index][i][0]
                 time_list.append(temp)
             ticks = [(i, j) for i, j in zip(index, time_list)]
             strAxis = MyAxisItem(ticks, orientation="bottom")
-
             self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
             self.plt2 = pg.PlotWidget()
 
@@ -515,12 +607,11 @@ class Control_sys_Tab(QTabWidget):
             # 将控件添加到pyqt中
             self.layout2.addWidget(self.plt, 0, 0)
 
-            # 控件2
-            self.layout2.addWidget(self.plt2, 0, 1)
+            # 添加控件2
+            # self.layout2.addWidget(self.plt2,0,1)
 
             # 将layout 布局添加到 tab2中
             self.tab2.setLayout(self.layout2)
-            self.Data.append(new_data)
 
             self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
             self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
