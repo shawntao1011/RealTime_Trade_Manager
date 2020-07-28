@@ -319,6 +319,13 @@ class DrawRecItem(pg.GraphicsObject):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.color_list = [(217, 194, 234),
+                           (58, 135, 162),
+                           (196, 62, 244),
+                           (147, 223, 153),
+                           (103, 182, 144),
+                           (194, 22, 47),
+                           (22, 182, 89)]
         self.draw_rect()
 
     def draw_rect(self):
@@ -346,21 +353,27 @@ class DrawRecItem(pg.GraphicsObject):
         #         p1.setPen(pg.mkPen(255,0,0))
         #         for i in range(len(self.data['TEST'])-1):
         #             p1.drawLine(QPointF(i,self.data['TEST'][i][4]),QPointF(i+1,self.data['TEST'][i+1][4]))
-
-        ## FLOW  close线
-        p1.setPen(pg.mkPen(255, 0, 0))
-        for i in range(len(self.data['FLOW']) - 1):
-            p1.drawLine(QPointF(i, self.data['FLOW'][i][4]), QPointF(i + 1, self.data['FLOW'][i + 1][4]))
-
-        ## FLML  close线
-        p1.setPen(pg.mkPen(0, 255, 0))
-        for i in range(len(self.data['FLML']) - 1):
-            p1.drawLine(QPointF(i, self.data['FLML'][i][4]), QPointF(i + 1, self.data['FLML'][i + 1][4]))
-
-        ## ML  close线
-        p1.setPen(pg.mkPen(0, 0, 255))
-        for i in range(len(self.data['ML']) - 1):
-            p1.drawLine(QPointF(i, self.data['ML'][i][4]), QPointF(i + 1, self.data['ML'][i + 1][4]))
+        count = 0
+        for index in self.data.keys():
+            rand_col = self.color_list[count]
+            p1.setPen(pg.mkPen(rand_col))
+            for i in range(len(self.data[index]) - 1):
+                p1.drawLine(QPointF(i, self.data[index][i][4]), QPointF(i + 1, self.data[index][i + 1][4]))
+            count += 1
+        # ## FLOW  close线
+        # p1.setPen(pg.mkPen(255, 0, 0))
+        # for i in range(len(self.data['FLOW']) - 1):
+        #     p1.drawLine(QPointF(i, self.data['FLOW'][i][4]), QPointF(i + 1, self.data['FLOW'][i + 1][4]))
+        #
+        # ## FLML  close线
+        # p1.setPen(pg.mkPen(0, 255, 0))
+        # for i in range(len(self.data['FLML']) - 1):
+        #     p1.drawLine(QPointF(i, self.data['FLML'][i][4]), QPointF(i + 1, self.data['FLML'][i + 1][4]))
+        #
+        # ## ML  close线
+        # p1.setPen(pg.mkPen(0, 0, 255))
+        # for i in range(len(self.data['ML']) - 1):
+        #     p1.drawLine(QPointF(i, self.data['ML'][i][4]), QPointF(i + 1, self.data['ML'][i + 1][4]))
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
@@ -498,6 +511,18 @@ class Control_sys_Tab(QTabWidget):
         self.g_CurrOrderRow = 0
         self.g_CurrBatchRow = 0
         self.g_CurrErrorRow = 0
+
+        # tab3 use
+        self.g_cat_row_dict = {}
+        self.cat_next_row = 0
+
+        self.g_winner_row_dict = {}
+        self.winner_next_row = 0
+
+        self.g_losser_row_dict = {}
+        self.losser_next_row = 0
+
+
         super().__init__(parent)
 
         #         # 设置sizepolicy
@@ -779,38 +804,44 @@ class Control_sys_Tab(QTabWidget):
 
         # 创建表格窗口1
         self.tableWidget4 = QtWidgets.QTableWidget()
-        self.tableWidget4.setRowCount(90)
-        self.tableWidget4.setColumnCount(4)
+        self.tableWidget4.setRowCount(50)
+        self.tableWidget4.setColumnCount(5)
         self.tableWidget4.setObjectName("tableWidget4")
 
-        self.tableWidget4.setHorizontalHeaderLabels(["Strategy", "Cat_idx", "Cat_name", "PNL"])
-        for i in range(0, 4):
+        self.tableWidget4.setHorizontalHeaderLabels(["Cat_idx", "Cat_name", "FLOW", "ML", "FLML"])
+        for i in range(0, 50):
+            self.tableWidget4.setRowHeight(i, 50)
+        for i in range(0, 5):
             self.tableWidget4.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
-            self.tableWidget4.setColumnWidth(i, 200)
+            self.tableWidget4.setColumnWidth(i, 150)
 
         # 表格窗口2
         self.tableWidget5 = QtWidgets.QTableWidget()
-        self.tableWidget5.setRowCount(3200)
-        self.tableWidget5.setColumnCount(3)
+        self.tableWidget5.setRowCount(3000)
+        self.tableWidget5.setColumnCount(4)
         self.tableWidget5.setObjectName("tableWidget5")
         self.tableWidget5.setAutoFillBackground(True)
-        self.tableWidget5.setHorizontalHeaderLabels(["Strategy", "Ticker", "PNL"])
-        for i in range(0, 3):
+        self.tableWidget5.setHorizontalHeaderLabels(["Ticker", "FLOW", "ML", "FLML"])
+        for i in range(0, 3000):
+            self.tableWidget5.setRowHeight(i, 50)
+        for i in range(0, 4):
             self.tableWidget5.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
-            self.tableWidget5.setColumnWidth(i, 240)
+            self.tableWidget5.setColumnWidth(i, 170)
 
         # 表格窗口3
         self.tableWidget6 = QtWidgets.QTableWidget()
 
-        self.tableWidget6.setRowCount(3200)
-        self.tableWidget6.setColumnCount(3)
+        self.tableWidget6.setRowCount(3000)
+        self.tableWidget6.setColumnCount(4)
 
         self.tableWidget6.setObjectName("tableWidget6")
         self.tableWidget6.setAutoFillBackground(True)
-        self.tableWidget6.setHorizontalHeaderLabels(["Strategy", "Ticker", "PNL"])
-        for i in range(0, 3):
+        self.tableWidget6.setHorizontalHeaderLabels(["Ticker", "FLOW", "ML", "FLML"])
+        for i in range(0, 3000):
+            self.tableWidget6.setRowHeight(i, 50)
+        for i in range(0, 4):
             self.tableWidget6.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
-            self.tableWidget6.setColumnWidth(i, 240)
+            self.tableWidget6.setColumnWidth(i, 170)
 
         self.pushButton3 = QtWidgets.QPushButton()
         # self.pushButton.setMaximumWidth(100)
@@ -832,7 +863,6 @@ class Control_sys_Tab(QTabWidget):
 
         self.tab3.setLayout(layout)
         self.pushButton3.clicked.connect(self.slotStart_tab3)
-
     ####################################################################################################################
     ##############################################################
     #     PyQt5 中的pyQtslot 是python中的decorator，用其可以将一个method 定义为 槽
@@ -965,7 +995,117 @@ class Control_sys_Tab(QTabWidget):
 
         column = 0
         if (msgType == 1):
-            print(msgType)
+            cat_id = self.g_cat_row_dict.get(text[1])
+            if cat_id == None:
+                cat_id = self.cat_next_row
+                self.cat_next_row += 1
+                self.g_cat_row_dict[text[1]] = cat_id
+            ## cat_indx 和 cat_name
+            for ele in text[1:3]:
+                it = self.tableWidget4.item(cat_id, column)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget4.setItem(cat_id, column, it)
+
+                it.setText(ele)
+                column += 1
+
+            # PNL
+            if text[0] == 'FLOW':
+                it = self.tableWidget4.item(cat_id, 2)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget4.setItem(cat_id, 2, it)
+                it.setText(text[-1])
+            if text[0] == 'ML':
+                it = self.tableWidget4.item(cat_id, 3)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget4.setItem(cat_id, 3, it)
+                it.setText(text[-1])
+            if text[0] == 'FLML':
+                it = self.tableWidget4.item(cat_id, 4)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget4.setItem(cat_id, 4, it)
+                it.setText(text[-1])
+
+
+        elif (msgType == 2):
+            winner_id = self.g_winner_row_dict.get(text[1])
+            if winner_id == None:
+                winner_id = self.winner_next_row
+                self.winner_next_row += 1
+                self.g_winner_row_dict[text[1]] = winner_id
+
+            # ticker
+            for ele in text[1:2]:
+                it = self.tableWidget5.item(winner_id, column)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget5.setItem(winner_id, column, it)
+
+                it.setText(ele)
+                column += 1
+
+            # PNL
+            if text[0] == 'FLOW':
+                it = self.tableWidget5.item(winner_id, 1)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget5.setItem(winner_id, 1, it)
+                it.setText(text[-1])
+            if text[0] == 'ML':
+                it = self.tableWidget5.item(winner_id, 2)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget5.setItem(winner_id, 2, it)
+                it.setText(text[-1])
+            if text[0] == 'FLML':
+                it = self.tableWidget5.item(winner_id, 3)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget5.setItem(winner_id, 3, it)
+                it.setText(text[-1])
+
+
+        else:
+            losser_id = self.g_losser_row_dict.get(text[1])
+            if losser_id == None:
+                losser_id = self.losser_next_row
+                self.losser_next_row += 1
+                self.g_losser_row_dict[text[1]] = losser_id
+
+            # ticker
+            for ele in text[1:2]:
+                it = self.tableWidget6.item(losser_id, column)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget6.setItem(losser_id, column, it)
+
+                it.setText(ele)
+                column += 1
+
+            # PNL
+            if text[0] == 'FLOW':
+                it = self.tableWidget6.item(losser_id, 1)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget6.setItem(losser_id, 1, it)
+                it.setText(text[-1])
+            if text[0] == 'ML':
+                it = self.tableWidget6.item(losser_id, 2)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget6.setItem(losser_id, 2, it)
+                it.setText(text[-1])
+            if text[0] == 'FLML':
+                it = self.tableWidget6.item(losser_id, 3)
+                if it is None:
+                    it = QtWidgets.QTableWidgetItem()
+                    self.tableWidget6.setItem(losser_id, 3, it)
+                it.setText(text[-1])
+
 
 ################################################ main ##############################################################
 
