@@ -108,6 +108,73 @@ def read_config():
 #########################################################################################################
 
 ################################### Self-design classes #################################################
+###Cedar Order
+class Order(object):
+        m_OrderRef=0;           #### Order ref no, unique for each order in exchange
+        m_RequestID=0;          ##/< Request id, unique for each strategy
+        m_OrderSysID="";        ##/< Order sys id, used by CTP, according to CTP documentation, It's quicker to use this id when cancelling an order
+        m_ProdID="";            ##/< Product id
+        m_ExchID="";            ##/< Exchange id
+        m_PriceType='u';        ##/< Price type, refer to \ref PriceTypeGroup
+        m_Direction='u';        ##/< Order direction, refer to \ref DirectionGroup
+        m_CombOffsetFlag='u';   ##/< Offest flag, refer to \ref OffsetFlagGroup
+        m_CombHedgeFlag='u';    ##/< Hedge flag, refer to \ref HedgeFlagGroup
+        m_LimitPrice=0;         ##/< Limit price
+        m_VolOriginal=0;        ##/< Original volume of this order
+        m_VolRemaining=0;       ##/< Remaining volume of this order
+        m_VolTraded=0;          ##/< Traded volume of this order, updated by OnRtnOrder
+        m_VolConfirmTraded=0;	##/< Confirmed traded volume of this order, updated by OnRtnTrade
+        m_Status='u';           ##/< Order status, refer to \ref OrderStatusGroup
+        m_ChaseTimes=0;         ##/< The times of chasing this order
+        m_SequenceNo=0;         ##/< Order sequence no, updated by exchange
+
+        def fill_value(msg):
+            elems = msg.split(',')
+            m_OrderRef=int(elems[0])
+            m_RequestID=int(elems[1])
+            m_OrderSysID=elems[2]
+            m_ProdID=elems[3]
+            m_ExchID=elems[4]
+            m_PriceType=elems[5]
+            m_Direction=elems[6]
+            m_CombOffsetFlag=elems[7]
+            m_CombHedgeFlag=elems[8]
+            m_LimitPrice=float(elems[9])
+            m_VolOriginal=int(elems[10])
+            m_VolRemaining=int(elems[11])
+            m_VolTraded=int(elems[12])
+            m_VolConfirmTraded=int(elems[13])
+            m_Status=elems[14]
+            m_ChaseTimes=int(elems[15])
+            m_SequenceNo=int(elems[16])
+
+
+###Cedar Request
+class Request(object):
+    rqAcct=0;
+    rqInstrument="";
+    rqBatchID="";
+    rqid=0;
+    rqDirection='u';
+    rqOrderSize=0;
+    tradedVol=0;
+    tradedAvgPrice=0;
+    fillRate=0;
+    referencePrice=0;
+
+    def fill_value(msg):
+        elems = msg.split(',')
+        rqAcct = int(elems[0])
+        rqInstrument=elems[1]
+        rqBatchID=elems[2]
+        rqid=int(elems[3])
+        rqDirection=elems[4]
+        rqOrderSize=int(elems[5])
+        tradedVol=int(elems[6])
+        tradedAvgPrice=float(elems[7])
+        fillRate=float(elems[8])
+        referencePrice=float(elems[9])
+
 ## Batch Manager 类，负责管理batch
 class BatchManager():
 
@@ -151,6 +218,40 @@ class BatchManager():
 
     def getAcctID(self):
         return self.AcctID;
+    
+    
+class UpdateData(QtCore.QThread):
+    requestChanged = QtCore.pyqtSignal(int, int, str)  # rowIndex, msgType,msg
+
+    def run(self):
+        requestChanged = QtCore.pyqtSignal(int, int, str)
+        context = zmq.Context()
+        sock = context.socket(zmq.SUB)
+        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_SubOda")
+        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Request")
+        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Error")
+        sock.setsockopt(zmq.HEARTBEAT_IVL,     5000)
+        sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
+        #print("hello")
+        sock.connect("tcp://192.168.0.66:15300")
+        sock.connect("tcp://117.185.37.175:51336")
+		### DOUBLE RQID Problem
+
+        while True:
+            msg = sock.recv()
+            msgs = msg.decode("ascii").split("|")
+            #msgs= msg.split(',')
+            #self.dataChanged.emit(2, 2, msgs[0])
+            print(msgs[0],msgs[1])
+            if(msgs[0] == "EMS_GUI_Request"):
+                self.requestChanged.emit(1,1, msgs[1])
+                print(msgs[1])
+            elif(msgs[0] == "EMS_GUI_SubOda"):
+                self.requestChanged.emit(2,2, msgs[1])
+                print(msgs[1])
+            elif(msgs[0] == "EMS_GUI_Error"):
+                self.requestChanged.emit(2,3, msgs[1])
+                print(msgs[1])
 
 
 #### tab2 线程############################
@@ -387,7 +488,6 @@ class Control_sys_Tab(QTabWidget):
         for i in self.config:
             self.Data[i] = []
         self.work = Update_tab2(self.config)
-        self.label = pg.TextItem()
 
         # 每个选项卡自定义的内容
         self.tab1UI()
@@ -512,8 +612,10 @@ class Control_sys_Tab(QTabWidget):
         else:
 
             pos = event[0]  # 鼠标的位置为event的第一个值
+
             #             try:
             if self.plt.sceneBoundingRect().contains(pos):
+
                 # 一个文本项 用来展示十字对应的信息
                 min_len = min(len(self.Data[k]) for k in self.Data.keys())
                 max_len = max(len(self.Data[k]) for k in self.Data.keys())
@@ -528,7 +630,7 @@ class Control_sys_Tab(QTabWidget):
                 # print('max_len ',min_len)
                 if -1 < index < min_len:
                     # print('index ',index)
-                    max_index = max(self.Data, key=lambda k: abs(self.Data[k][index][4] - pos_y))
+                    min_index = min(self.Data, key=lambda k: abs(self.Data[k][index][4] - pos_y))
 
                     # 在label中写入HTML
                     self.label.setHtml(
@@ -538,15 +640,15 @@ class Control_sys_Tab(QTabWidget):
                         收盘：{3}</p><p style='color:black'>\
                         最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
                         最低价：<span style='color:green;'>{5}</span></p>".format(
-                            max_index, self.Data[max_index][index][0], self.Data[max_index][index][1],
-                            self.Data[max_index][index][4],
-                            self.Data[max_index][index][2], self.Data[max_index][index][3]))
+                            min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
+                            self.Data[min_index][index][4],
+                            self.Data[min_index][index][2], self.Data[min_index][index][3]))
                     self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
                     # print(self.label)
 
                 # 当时间线不统一时,只显示数据最多的
-                if min_len < index < max_len:
-                    max_index = max(self.Data, key=lambda k: len(self.Data[k]))
+                elif min_len < index < max_len:
+                    min_index = min(self.Data, key=lambda k: len(self.Data[k]))
                     # 在label中写入HTML
                     self.label.setHtml(
                         "<p style='color:black'><strong>数据源：{0}\
@@ -555,9 +657,9 @@ class Control_sys_Tab(QTabWidget):
                         收盘：{3}</p><p style='color:black'>\
                         最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
                         最低价：<span style='color:green;'>{5}</span></p>".format(
-                            max_index, self.Data[max_index][index][0], self.Data[max_index][index][1],
-                            self.Data[max_index][index][4],
-                            self.Data[max_index][index][2], self.Data[max_index][index][3]))
+                            min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
+                            self.Data[min_index][index][4],
+                            self.Data[min_index][index][2], self.Data[min_index][index][3]))
                     self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
 
                 ## 将label添加进 plt
@@ -617,11 +719,16 @@ class Control_sys_Tab(QTabWidget):
             # 将layout 布局添加到 tab2中
             self.tab2.setLayout(self.layout2)
 
+            # 设置标签
+            self.label = pg.TextItem()
+
             self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
             self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
             self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
             self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
-            self.move_slot = pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
+            min_len = min(len(self.Data[k]) for k in self.Data.keys())
+            if min_len > 1:
+                self.move_slot = pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
 
     def tab2UI(self):
         #         self.timer_start()
@@ -747,7 +854,6 @@ class Control_sys_Tab(QTabWidget):
             self.tableWidget4.selectRow(myKey)
         else:
             self.tableWidget1.selectRow(row)
-####################################################################################################################
 
 ################################################ main ##############################################################
 
