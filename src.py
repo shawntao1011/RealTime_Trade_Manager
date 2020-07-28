@@ -447,6 +447,41 @@ class Update_tab2(QtCore.QThread):
 #                 self.requestChange.emit('TEST',tuple(msg[1:]))
 #                 #print('ML ',new_data_ML)
 
+
+###### tab3 线程###########################
+class UpdateData_tab3(QtCore.QThread):
+    requestChanged = QtCore.pyqtSignal(int, int, list)  # rowIndex, msgType,msg list
+
+    def run(self):
+        requestChanged = QtCore.pyqtSignal(int, int, list)
+        context = zmq.Context()
+        sock = context.socket(zmq.SUB)
+        sock.setsockopt(zmq.SUBSCRIBE, b"IND_CONTRIBUTE")
+        sock.setsockopt(zmq.SUBSCRIBE, b"TOP_WINNER")
+        sock.setsockopt(zmq.SUBSCRIBE, b"TOP_LOSSER")
+        sock.setsockopt(zmq.HEARTBEAT_IVL,     5000)
+        sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
+        #print("hello")
+        sock.connect("tcp://192.168.0.32:19006")
+		### DOUBLE RQID Problem
+
+        while True:
+            msg = sock.recv()
+            msgs = msg.decode("utf-8").split(",")
+            #msgs= msg.split(',')
+            #self.dataChanged.emit(2, 2, msgs[0])
+            #print(msgs)
+            if(msgs[0] == "IND_CONTRIBUTE"):
+                self.requestChanged.emit(1,1, msgs[1:])
+
+            elif(msgs[0] == "TOP_WINNER"):
+                self.requestChanged.emit(2,2, msgs[1:])
+
+            elif(msgs[0] == "TOP_LOSSER"):
+                self.requestChanged.emit(2,3, msgs[1:])
+
+
+
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
@@ -613,64 +648,63 @@ class Control_sys_Tab(QTabWidget):
 
             pos = event[0]  # 鼠标的位置为event的第一个值
 
-            #             try:
-            if self.plt.sceneBoundingRect().contains(pos):
+            try:
+                if self.plt.sceneBoundingRect().contains(pos):
 
-                # 一个文本项 用来展示十字对应的信息
-                min_len = min(len(self.Data[k]) for k in self.Data.keys())
-                max_len = max(len(self.Data[k]) for k in self.Data.keys())
+                    # 一个文本项 用来展示十字对应的信息
+                    min_len = min(len(self.Data[k]) for k in self.Data.keys())
+                    max_len = max(len(self.Data[k]) for k in self.Data.keys())
 
-                #                     print(pos)
-                mousePoint = self.plt.plotItem.vb.mapSceneToView(pos)  # 转换鼠标坐标
-                index = int(mousePoint.x())  # 鼠标所处的X轴坐标
-                pos_y = int(mousePoint.y())  # 鼠标所处的Y轴坐标
+                    #                     print(pos)
+                    mousePoint = self.plt.plotItem.vb.mapSceneToView(pos)  # 转换鼠标坐标
+                    index = int(mousePoint.x())  # 鼠标所处的X轴坐标
+                    pos_y = int(mousePoint.y())  # 鼠标所处的Y轴坐标
 
-                # 当时间线统一时
-                # 需要重定位，定位到最近的曲线
-                # print('max_len ',min_len)
-                if -1 < index < min_len:
-                    # print('index ',index)
-                    min_index = min(self.Data, key=lambda k: abs(self.Data[k][index][4] - pos_y))
+                    # 当时间线统一时
+                    # 需要重定位，定位到最近的曲线
+                    # print('max_len ',min_len)
+                    if -1 < index < min_len:
+                        # print('index ',index)
+                        min_index = min(self.Data, key=lambda k: abs(self.Data[k][index][4] - pos_y))
 
-                    # 在label中写入HTML
-                    self.label.setHtml(
-                        "<p style='color:black'><strong>数据源：{0}\
-                        <p style='color:black'><strong>时间：{1}</strong></p><p style='color:black'>\
-                        开盘：{2}</p><p style='color:black'>\
-                        收盘：{3}</p><p style='color:black'>\
-                        最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
-                        最低价：<span style='color:green;'>{5}</span></p>".format(
-                            min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
-                            self.Data[min_index][index][4],
-                            self.Data[min_index][index][2], self.Data[min_index][index][3]))
-                    self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
-                    # print(self.label)
+                        # 在label中写入HTML
+                        self.label.setHtml(
+                            "<p style='color:black'><strong>数据源：{0}\
+                            <p style='color:black'><strong>时间：{1}</strong></p><p style='color:black'>\
+                            开盘：{2}</p><p style='color:black'>\
+                            收盘：{3}</p><p style='color:black'>\
+                            最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
+                            最低价：<span style='color:green;'>{5}</span></p>".format(
+                                min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
+                                self.Data[min_index][index][4],
+                                self.Data[min_index][index][2], self.Data[min_index][index][3]))
+                        self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
+                        # print(self.label)
 
-                # 当时间线不统一时,只显示数据最多的
-                elif min_len < index < max_len:
-                    min_index = min(self.Data, key=lambda k: len(self.Data[k]))
-                    # 在label中写入HTML
-                    self.label.setHtml(
-                        "<p style='color:black'><strong>数据源：{0}\
-                        <p style='color:black'><strong>时间：{1}</strong></p><p style='color:black'>\
-                        开盘：{2}</p><p style='color:black'>\
-                        收盘：{3}</p><p style='color:black'>\
-                        最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
-                        最低价：<span style='color:green;'>{5}</span></p>".format(
-                            min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
-                            self.Data[min_index][index][4],
-                            self.Data[min_index][index][2], self.Data[min_index][index][3]))
-                    self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
+                    # 当时间线不统一时,只显示数据最多的
+                    elif min_len < index < max_len:
+                        min_index = min(self.Data, key=lambda k: len(self.Data[k]))
+                        # 在label中写入HTML
+                        self.label.setHtml(
+                            "<p style='color:black'><strong>数据源：{0}\
+                            <p style='color:black'><strong>时间：{1}</strong></p><p style='color:black'>\
+                            开盘：{2}</p><p style='color:black'>\
+                            收盘：{3}</p><p style='color:black'>\
+                            最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
+                            最低价：<span style='color:green;'>{5}</span></p>".format(
+                                min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
+                                self.Data[min_index][index][4],
+                                self.Data[min_index][index][2], self.Data[min_index][index][3]))
+                        self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
 
-                ## 将label添加进 plt
-                self.plt.addItem(self.label)
-                # print(self.plt.listDataItems())
-                # 设置垂直线条和水平线条的位置组成十字光标
-                self.vLine.setPos(mousePoint.x())
-                self.hLine.setPos(mousePoint.y())
-
-    #             except Exception as e:
-    #                 print("error in print_slot")
+                    ## 将label添加进 plt
+                    self.plt.addItem(self.label)
+                    # print(self.plt.listDataItems())
+                    # 设置垂直线条和水平线条的位置组成十字光标
+                    self.vLine.setPos(mousePoint.x())
+                    self.hLine.setPos(mousePoint.y())
+            except Exception as e:
+                print("error in print_slot")
 
     ######################################################
 
@@ -738,7 +772,66 @@ class Control_sys_Tab(QTabWidget):
 
     def tab3UI(self):
 
-        return
+        # 设置主布局
+        layout = QHBoxLayout()
+
+        sec_layout = QFormLayout()
+
+        # 创建表格窗口1
+        self.tableWidget4 = QtWidgets.QTableWidget()
+        self.tableWidget4.setRowCount(90)
+        self.tableWidget4.setColumnCount(4)
+        self.tableWidget4.setObjectName("tableWidget4")
+
+        self.tableWidget4.setHorizontalHeaderLabels(["Strategy", "Cat_idx", "Cat_name", "PNL"])
+        for i in range(0, 4):
+            self.tableWidget4.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
+            self.tableWidget4.setColumnWidth(i, 200)
+
+        # 表格窗口2
+        self.tableWidget5 = QtWidgets.QTableWidget()
+        self.tableWidget5.setRowCount(3200)
+        self.tableWidget5.setColumnCount(3)
+        self.tableWidget5.setObjectName("tableWidget5")
+        self.tableWidget5.setAutoFillBackground(True)
+        self.tableWidget5.setHorizontalHeaderLabels(["Strategy", "Ticker", "PNL"])
+        for i in range(0, 3):
+            self.tableWidget5.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
+            self.tableWidget5.setColumnWidth(i, 240)
+
+        # 表格窗口3
+        self.tableWidget6 = QtWidgets.QTableWidget()
+
+        self.tableWidget6.setRowCount(3200)
+        self.tableWidget6.setColumnCount(3)
+
+        self.tableWidget6.setObjectName("tableWidget6")
+        self.tableWidget6.setAutoFillBackground(True)
+        self.tableWidget6.setHorizontalHeaderLabels(["Strategy", "Ticker", "PNL"])
+        for i in range(0, 3):
+            self.tableWidget6.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
+            self.tableWidget6.setColumnWidth(i, 240)
+
+        self.pushButton3 = QtWidgets.QPushButton()
+        # self.pushButton.setMaximumWidth(100)
+        self.pushButton3.setObjectName("pushButton3")
+        self.pushButton3.setText("开始运行")
+
+        # 添加表单2进 子布局
+        sec_layout.addWidget(self.tableWidget5)
+
+        # 添加表单3进 子布局
+        sec_layout.addWidget(self.tableWidget6)
+
+        # 添加 按钮 进 子布局
+        sec_layout.addWidget(self.pushButton3)
+
+        # 添加表单1 进主布局，子布局进主布局
+        layout.addWidget(self.tableWidget4)
+        layout.addLayout(sec_layout)
+
+        self.tab3.setLayout(layout)
+        self.pushButton3.clicked.connect(self.slotStart_tab3)
 
     ####################################################################################################################
     ##############################################################
@@ -854,6 +947,25 @@ class Control_sys_Tab(QTabWidget):
             self.tableWidget4.selectRow(myKey)
         else:
             self.tableWidget1.selectRow(row)
+
+    @QtCore.pyqtSlot()
+    def slotStart_tab3(self):
+        # 按钮 暂停使用
+        self.pushButton3.setEnabled(False)
+        # 开启一个新进程用来 更新数据
+        self.update_data_thread3 = UpdateData_tab3(self)
+        self.update_data_thread3.requestChanged.connect(self.onRequestChanged_tab3)
+        # 线程进入 准备阶段
+        self.update_data_thread3.start()
+
+    @QtCore.pyqtSlot(int, int, list)
+    def onRequestChanged_tab3(self, row, msgType, text):
+        # text 即为我们所需要的数据列
+        print(text)
+
+        column = 0
+        if (msgType == 1):
+            print(msgType)
 
 ################################################ main ##############################################################
 
