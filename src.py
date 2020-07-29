@@ -1010,6 +1010,7 @@ class Control_sys_Tab(QTabWidget):
                     self.tableWidget4.setItem(cat_id, column, it)
 
                 it.setText(ele)
+                it.setTextAlignment(Qt.AlignCenter)
                 column += 1
 
             # PNL
@@ -1019,18 +1020,35 @@ class Control_sys_Tab(QTabWidget):
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget4.setItem(cat_id, 2, it)
                 it.setText(text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
+                if float(text[-1]) <= -5:
+                    it.setBackground(QtGui.QColor(144, 238, 144))
+                if float(text[-1]) >= 5:
+                    it.setBackground(QtGui.QColor(193, 210, 240))
+
             if text[0] == 'ML':
                 it = self.tableWidget4.item(cat_id, 3)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget4.setItem(cat_id, 3, it)
                 it.setText(text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
+                if float(text[-1]) <= -5:
+                    it.setBackground(QtGui.QColor(144, 238, 144))
+                if float(text[-1]) >= 5:
+                    it.setBackground(QtGui.QColor(193, 210, 240))
+
             if text[0] == 'FLML':
                 it = self.tableWidget4.item(cat_id, 4)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget4.setItem(cat_id, 4, it)
                 it.setText(text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
+                if float(text[-1]) <= -5:
+                    it.setBackground(QtGui.QColor(144, 238, 144))
+                if float(text[-1]) >= 5:
+                    it.setBackground(QtGui.QColor(193, 210, 240))
 
 
         elif (msgType == 2):
@@ -1048,6 +1066,7 @@ class Control_sys_Tab(QTabWidget):
                     self.tableWidget5.setItem(winner_id, column, it)
 
                 it.setText(ele)
+                it.setTextAlignment(Qt.AlignCenter)
                 column += 1
 
             # PNL
@@ -1057,18 +1076,21 @@ class Control_sys_Tab(QTabWidget):
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget5.setItem(winner_id, 1, it)
                 it.setText(text[-2] + ',' + text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
             if text[0] == 'ML':
                 it = self.tableWidget5.item(winner_id, 2)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget5.setItem(winner_id, 2, it)
                 it.setText(text[-2] + ',' + text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
             if text[0] == 'FLML':
                 it = self.tableWidget5.item(winner_id, 3)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget5.setItem(winner_id, 3, it)
                 it.setText(text[-2] + ',' + text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
 
 
         else:
@@ -1086,6 +1108,7 @@ class Control_sys_Tab(QTabWidget):
                     self.tableWidget6.setItem(losser_id, column, it)
 
                 it.setText(ele)
+                it.setTextAlignment(Qt.AlignCenter)
                 column += 1
 
             # PNL
@@ -1095,18 +1118,22 @@ class Control_sys_Tab(QTabWidget):
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget6.setItem(losser_id, 1, it)
                 it.setText(text[-2] + ',' + text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
             if text[0] == 'ML':
                 it = self.tableWidget6.item(losser_id, 2)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget6.setItem(losser_id, 2, it)
                 it.setText(text[-2] + ',' + text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
             if text[0] == 'FLML':
                 it = self.tableWidget6.item(losser_id, 3)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget6.setItem(losser_id, 3, it)
                 it.setText(text[-2] + ',' + text[-1])
+                it.setTextAlignment(Qt.AlignCenter)
+
 
 ################################################ main ##############################################################
 
