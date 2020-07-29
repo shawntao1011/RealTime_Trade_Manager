@@ -279,7 +279,7 @@ class Update_tab2(QtCore.QThread):
         sock.connect("tcp://192.168.0.32:19006")
         #         for i in range(100):
         while True:
-            msg = get_stock_info()
+            #msg = get_stock_info()
             sss = sock.recv()
             msg = sss.decode("ascii").split(",")
             new_data_FLOW = []
@@ -562,7 +562,7 @@ class Control_sys_Tab(QTabWidget):
         # 设置主布局
         layout = QHBoxLayout()
 
-        sec_layout = QFormLayout()
+        sec_layout = QVBoxLayout()
 
         # 创建表格窗口1
         self.tableWidget1 = QtWidgets.QTableWidget()
@@ -800,7 +800,7 @@ class Control_sys_Tab(QTabWidget):
         # 设置主布局
         layout = QHBoxLayout()
 
-        sec_layout = QFormLayout()
+        sec_layout = QVBoxLayout()
 
         # 创建表格窗口1
         self.tableWidget4 = QtWidgets.QTableWidget()
@@ -1138,10 +1138,10 @@ class Control_sys_Tab(QTabWidget):
 ################################################ main ##############################################################
 
 if __name__ == "__main__":
-    valid_set=get_stock_history_from_csv()
-    valid_tuple_list = []
-    for i in range(len(valid_set)):
-        valid_tuple_list.append(tuple(valid_set.iloc[i]))
+    # valid_set=get_stock_history_from_csv()
+    # valid_tuple_list = []
+    # for i in range(len(valid_set)):
+    #     valid_tuple_list.append(tuple(valid_set.iloc[i]))
 
     AcctNameDict = GetAcctName()#pd.read_csv("./depend/accountMap.txt")
     AcctNameDict[0] = "UNKNOWN"
