@@ -994,6 +994,8 @@ class Control_sys_Tab(QTabWidget):
         print(text)
 
         column = 0
+
+        # message type
         if (msgType == 1):
             cat_id = self.g_cat_row_dict.get(text[1])
             if cat_id == None:
@@ -1054,19 +1056,19 @@ class Control_sys_Tab(QTabWidget):
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget5.setItem(winner_id, 1, it)
-                it.setText(text[-1])
+                it.setText(text[-2] + ',' + text[-1])
             if text[0] == 'ML':
                 it = self.tableWidget5.item(winner_id, 2)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget5.setItem(winner_id, 2, it)
-                it.setText(text[-1])
+                it.setText(text[-2] + ',' + text[-1])
             if text[0] == 'FLML':
                 it = self.tableWidget5.item(winner_id, 3)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget5.setItem(winner_id, 3, it)
-                it.setText(text[-1])
+                it.setText(text[-2] + ',' + text[-1])
 
 
         else:
@@ -1092,20 +1094,19 @@ class Control_sys_Tab(QTabWidget):
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget6.setItem(losser_id, 1, it)
-                it.setText(text[-1])
+                it.setText(text[-2] + ',' + text[-1])
             if text[0] == 'ML':
                 it = self.tableWidget6.item(losser_id, 2)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget6.setItem(losser_id, 2, it)
-                it.setText(text[-1])
+                it.setText(text[-2] + ',' + text[-1])
             if text[0] == 'FLML':
                 it = self.tableWidget6.item(losser_id, 3)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
                     self.tableWidget6.setItem(losser_id, 3, it)
-                it.setText(text[-1])
-
+                it.setText(text[-2] + ',' + text[-1])
 
 ################################################ main ##############################################################
 
