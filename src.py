@@ -6,31 +6,30 @@ import pandas as pd
 import numpy as np
 from PyQt5 import sip
 from PyQt5.QtWidgets import *
-from PyQt5 import QtWidgets,QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QPicture,QPainter
-from PyQt5.QtCore import QPointF,QRectF
+from PyQt5.QtGui import QPicture, QPainter
+from PyQt5.QtCore import QPointF, QRectF
 import pyqtgraph as pg
-
 
 ##################### global Variable##############################
 
 AcctNameDict = {}
 
-priceType ={}
+priceType = {}
 priceType['1'] = "AnyPrice"
 priceType['2'] = "LimitPrice"
 priceType['u'] = "Unknown"
 priceType
 
-directionType ={}
+directionType = {}
 directionType['0'] = "Buy"
 directionType['1'] = "Sell"
 directionType['u'] = "Unknown"
 directionType
 
-OpenCloseFlag ={}
+OpenCloseFlag = {}
 OpenCloseFlag['0'] = "Open"
 OpenCloseFlag['1'] = "Close"
 OpenCloseFlag['3'] = "CloseToday"
@@ -44,7 +43,7 @@ hedgeFlag['1'] = "Speculate"
 hedgeFlag['2'] = "Arbitrage"
 hedgeFlag
 
-orderStatus ={}
+orderStatus = {}
 orderStatus['1'] = "New"
 orderStatus['2'] = "Accepted"
 orderStatus['3'] = "Rejected"
@@ -81,99 +80,103 @@ def get_stock_history_from_yahoo(ticker="NFLX"):
     hdata.index = pd.to_datetime(hdata.index)
     hdata = hdata.astype('d')
     hdata.columns = ['Open', 'High', 'Low', 'Close', 'AdjClose', 'Volume']
-    hdata_reindexed=hdata.reset_index()
+    hdata_reindexed = hdata.reset_index()
     valid_set = hdata_reindexed.sort_values(by='Date').reset_index(drop=True)
     return valid_set
 
+
 ## 从本地下载数据
 def get_stock_history_from_csv(path="nflx.csv"):
-    temp=pd.read_csv(path,index_col=0)
-    valid_set=temp.sort_values(by='Date').reset_index(drop=True)
+    temp = pd.read_csv(path, index_col=0)
+    valid_set = temp.sort_values(by='Date').reset_index(drop=True)
     return valid_set
+
 
 ## 模拟数据流，逐条获取数据
 def get_stock_info():
     global valid_tuple_list
-    if len(valid_tuple_list)>0:
-        temp=valid_tuple_list[0]
-        valid_tuple_list=valid_tuple_list[1:]
+    if len(valid_tuple_list) > 0:
+        temp = valid_tuple_list[0]
+        valid_tuple_list = valid_tuple_list[1:]
         return temp
 
 
 ## 获取config
 def read_config():
-    config=pd.read_csv("./depend/socket.txt",header=None)
+    config = pd.read_csv("./depend/socket.txt", header=None)
     return list(config[0])
+
 
 #########################################################################################################
 
 ################################### Self-design classes #################################################
 ###Cedar Order
 class Order(object):
-        m_OrderRef=0;           #### Order ref no, unique for each order in exchange
-        m_RequestID=0;          ##/< Request id, unique for each strategy
-        m_OrderSysID="";        ##/< Order sys id, used by CTP, according to CTP documentation, It's quicker to use this id when cancelling an order
-        m_ProdID="";            ##/< Product id
-        m_ExchID="";            ##/< Exchange id
-        m_PriceType='u';        ##/< Price type, refer to \ref PriceTypeGroup
-        m_Direction='u';        ##/< Order direction, refer to \ref DirectionGroup
-        m_CombOffsetFlag='u';   ##/< Offest flag, refer to \ref OffsetFlagGroup
-        m_CombHedgeFlag='u';    ##/< Hedge flag, refer to \ref HedgeFlagGroup
-        m_LimitPrice=0;         ##/< Limit price
-        m_VolOriginal=0;        ##/< Original volume of this order
-        m_VolRemaining=0;       ##/< Remaining volume of this order
-        m_VolTraded=0;          ##/< Traded volume of this order, updated by OnRtnOrder
-        m_VolConfirmTraded=0;	##/< Confirmed traded volume of this order, updated by OnRtnTrade
-        m_Status='u';           ##/< Order status, refer to \ref OrderStatusGroup
-        m_ChaseTimes=0;         ##/< The times of chasing this order
-        m_SequenceNo=0;         ##/< Order sequence no, updated by exchange
+    m_OrderRef = 0;  #### Order ref no, unique for each order in exchange
+    m_RequestID = 0;  ##/< Request id, unique for each strategy
+    m_OrderSysID = "";  ##/< Order sys id, used by CTP, according to CTP documentation, It's quicker to use this id when cancelling an order
+    m_ProdID = "";  ##/< Product id
+    m_ExchID = "";  ##/< Exchange id
+    m_PriceType = 'u';  ##/< Price type, refer to \ref PriceTypeGroup
+    m_Direction = 'u';  ##/< Order direction, refer to \ref DirectionGroup
+    m_CombOffsetFlag = 'u';  ##/< Offest flag, refer to \ref OffsetFlagGroup
+    m_CombHedgeFlag = 'u';  ##/< Hedge flag, refer to \ref HedgeFlagGroup
+    m_LimitPrice = 0;  ##/< Limit price
+    m_VolOriginal = 0;  ##/< Original volume of this order
+    m_VolRemaining = 0;  ##/< Remaining volume of this order
+    m_VolTraded = 0;  ##/< Traded volume of this order, updated by OnRtnOrder
+    m_VolConfirmTraded = 0;  ##/< Confirmed traded volume of this order, updated by OnRtnTrade
+    m_Status = 'u';  ##/< Order status, refer to \ref OrderStatusGroup
+    m_ChaseTimes = 0;  ##/< The times of chasing this order
+    m_SequenceNo = 0;  ##/< Order sequence no, updated by exchange
 
-        def fill_value(msg):
-            elems = msg.split(',')
-            m_OrderRef=int(elems[0])
-            m_RequestID=int(elems[1])
-            m_OrderSysID=elems[2]
-            m_ProdID=elems[3]
-            m_ExchID=elems[4]
-            m_PriceType=elems[5]
-            m_Direction=elems[6]
-            m_CombOffsetFlag=elems[7]
-            m_CombHedgeFlag=elems[8]
-            m_LimitPrice=float(elems[9])
-            m_VolOriginal=int(elems[10])
-            m_VolRemaining=int(elems[11])
-            m_VolTraded=int(elems[12])
-            m_VolConfirmTraded=int(elems[13])
-            m_Status=elems[14]
-            m_ChaseTimes=int(elems[15])
-            m_SequenceNo=int(elems[16])
+    def fill_value(msg):
+        elems = msg.split(',')
+        m_OrderRef = int(elems[0])
+        m_RequestID = int(elems[1])
+        m_OrderSysID = elems[2]
+        m_ProdID = elems[3]
+        m_ExchID = elems[4]
+        m_PriceType = elems[5]
+        m_Direction = elems[6]
+        m_CombOffsetFlag = elems[7]
+        m_CombHedgeFlag = elems[8]
+        m_LimitPrice = float(elems[9])
+        m_VolOriginal = int(elems[10])
+        m_VolRemaining = int(elems[11])
+        m_VolTraded = int(elems[12])
+        m_VolConfirmTraded = int(elems[13])
+        m_Status = elems[14]
+        m_ChaseTimes = int(elems[15])
+        m_SequenceNo = int(elems[16])
 
 
 ###Cedar Request
 class Request(object):
-    rqAcct=0;
-    rqInstrument="";
-    rqBatchID="";
-    rqid=0;
-    rqDirection='u';
-    rqOrderSize=0;
-    tradedVol=0;
-    tradedAvgPrice=0;
-    fillRate=0;
-    referencePrice=0;
+    rqAcct = 0;
+    rqInstrument = "";
+    rqBatchID = "";
+    rqid = 0;
+    rqDirection = 'u';
+    rqOrderSize = 0;
+    tradedVol = 0;
+    tradedAvgPrice = 0;
+    fillRate = 0;
+    referencePrice = 0;
 
     def fill_value(msg):
         elems = msg.split(',')
         rqAcct = int(elems[0])
-        rqInstrument=elems[1]
-        rqBatchID=elems[2]
-        rqid=int(elems[3])
-        rqDirection=elems[4]
-        rqOrderSize=int(elems[5])
-        tradedVol=int(elems[6])
-        tradedAvgPrice=float(elems[7])
-        fillRate=float(elems[8])
-        referencePrice=float(elems[9])
+        rqInstrument = elems[1]
+        rqBatchID = elems[2]
+        rqid = int(elems[3])
+        rqDirection = elems[4]
+        rqOrderSize = int(elems[5])
+        tradedVol = int(elems[6])
+        tradedAvgPrice = float(elems[7])
+        fillRate = float(elems[8])
+        referencePrice = float(elems[9])
+
 
 ## Batch Manager 类，负责管理batch
 class BatchManager():
@@ -184,42 +187,44 @@ class BatchManager():
         self.BuyTotalValuePerRQID = {}
         self.SellTotalValuePerRQID = {}
         self.AcctID = 0
-    def bookAcctID(self,acct):
+
+    def bookAcctID(self, acct):
         self.AcctID = acct
 
-    def bookTradedValue(self,RQID,value):
-        if(value > 0):
+    def bookTradedValue(self, RQID, value):
+        if (value > 0):
             self.BuyValuePerRQID[RQID] = value
-            #print("BUY: %f"%(self.BuyValuePerRQID[RQID]))
+            # print("BUY: %f"%(self.BuyValuePerRQID[RQID]))
         else:
             self.SellValuePerRQID[RQID] = value
-            #print("SELL: %f"%(self.SellValuePerRQID[RQID]))
-    def bookTotalValue(self,RQID,value):
-        if(value > 0):
+            # print("SELL: %f"%(self.SellValuePerRQID[RQID]))
+
+    def bookTotalValue(self, RQID, value):
+        if (value > 0):
             self.BuyTotalValuePerRQID[RQID] = value
-            #print("BUY: %f"%(self.BuyValuePerRQID[RQID]))
+            # print("BUY: %f"%(self.BuyValuePerRQID[RQID]))
         else:
             self.SellTotalValuePerRQID[RQID] = value
-            #print("SELL: %f"%(self.SellValuePerRQID[RQID]))
+            # print("SELL: %f"%(self.SellValuePerRQID[RQID]))
 
     def getBuyNotional(self):
-        #print("BUY NOTIONAL : ",self.BuyValuePerRQID.values(),sum(self.BuyValuePerRQID.values()))
+        # print("BUY NOTIONAL : ",self.BuyValuePerRQID.values(),sum(self.BuyValuePerRQID.values()))
         boughtNotional = sum(self.BuyValuePerRQID.values())
-        totalBuyNotional  = sum(self.BuyTotalValuePerRQID.values())
-        myFillRate     = (boughtNotional / totalBuyNotional) if (totalBuyNotional > 0) else 0
-        return [boughtNotional,myFillRate,totalBuyNotional]
+        totalBuyNotional = sum(self.BuyTotalValuePerRQID.values())
+        myFillRate = (boughtNotional / totalBuyNotional) if (totalBuyNotional > 0) else 0
+        return [boughtNotional, myFillRate, totalBuyNotional]
 
     def getSellNotional(self):
-        #print("SELL NOTIONAL : ",self.SellValuePerRQID.values(),sum(self.SellValuePerRQID.values()))
+        # print("SELL NOTIONAL : ",self.SellValuePerRQID.values(),sum(self.SellValuePerRQID.values()))
         soldNoitional = sum(self.SellValuePerRQID.values())
         totalSellNotional = sum(self.SellTotalValuePerRQID.values())
-        myFillRate    = soldNoitional / totalSellNotional if((abs(totalSellNotional)) > 0) else 0
-        return [soldNoitional,myFillRate,totalSellNotional]
+        myFillRate = soldNoitional / totalSellNotional if ((abs(totalSellNotional)) > 0) else 0
+        return [soldNoitional, myFillRate, totalSellNotional]
 
     def getAcctID(self):
         return self.AcctID;
-    
-    
+
+
 class UpdateData(QtCore.QThread):
     requestChanged = QtCore.pyqtSignal(int, int, str)  # rowIndex, msgType,msg
 
@@ -230,27 +235,27 @@ class UpdateData(QtCore.QThread):
         sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_SubOda")
         sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Request")
         sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Error")
-        sock.setsockopt(zmq.HEARTBEAT_IVL,     5000)
+        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
-        #print("hello")
+        # print("hello")
         sock.connect("tcp://192.168.0.66:15300")
         sock.connect("tcp://117.185.37.175:51336")
-		### DOUBLE RQID Problem
+        ### DOUBLE RQID Problem
 
         while True:
             msg = sock.recv()
             msgs = msg.decode("ascii").split("|")
-            #msgs= msg.split(',')
-            #self.dataChanged.emit(2, 2, msgs[0])
-            print(msgs[0],msgs[1])
-            if(msgs[0] == "EMS_GUI_Request"):
-                self.requestChanged.emit(1,1, msgs[1])
+            # msgs= msg.split(',')
+            # self.dataChanged.emit(2, 2, msgs[0])
+            print(msgs[0], msgs[1])
+            if (msgs[0] == "EMS_GUI_Request"):
+                self.requestChanged.emit(1, 1, msgs[1])
                 print(msgs[1])
-            elif(msgs[0] == "EMS_GUI_SubOda"):
-                self.requestChanged.emit(2,2, msgs[1])
+            elif (msgs[0] == "EMS_GUI_SubOda"):
+                self.requestChanged.emit(2, 2, msgs[1])
                 print(msgs[1])
-            elif(msgs[0] == "EMS_GUI_Error"):
-                self.requestChanged.emit(2,3, msgs[1])
+            elif (msgs[0] == "EMS_GUI_Error"):
+                self.requestChanged.emit(2, 3, msgs[1])
                 print(msgs[1])
 
 
@@ -279,7 +284,7 @@ class Update_tab2(QtCore.QThread):
         sock.connect("tcp://192.168.0.32:19006")
         #         for i in range(100):
         while True:
-            #msg = get_stock_info()
+            # msg = get_stock_info()
             sss = sock.recv()
             msg = sss.decode("ascii").split(",")
             new_data_FLOW = []
@@ -394,7 +399,7 @@ class MyAxisItem(pg.AxisItem):
         for v in values:
             vs = v * scale
             if vs in self.x_values:
-                vstr=self.x_strings[np.abs(self.x_values-vs).argmin()]
+                vstr = self.x_strings[np.abs(self.x_values - vs).argmin()]
             else:
                 vstr = ''
 
@@ -472,27 +477,26 @@ class UpdateData_tab3(QtCore.QThread):
         sock.setsockopt(zmq.SUBSCRIBE, b"IND_CONTRIBUTE")
         sock.setsockopt(zmq.SUBSCRIBE, b"TOP_WINNER")
         sock.setsockopt(zmq.SUBSCRIBE, b"TOP_LOSSER")
-        sock.setsockopt(zmq.HEARTBEAT_IVL,     5000)
+        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
-        #print("hello")
+        # print("hello")
         sock.connect("tcp://192.168.0.32:19006")
-		### DOUBLE RQID Problem
+        ### DOUBLE RQID Problem
 
         while True:
             msg = sock.recv()
             msgs = msg.decode("utf-8").split(",")
-            #msgs= msg.split(',')
-            #self.dataChanged.emit(2, 2, msgs[0])
-            #print(msgs)
-            if(msgs[0] == "IND_CONTRIBUTE"):
-                self.requestChanged.emit(1,1, msgs[1:])
+            # msgs= msg.split(',')
+            # self.dataChanged.emit(2, 2, msgs[0])
+            # print(msgs)
+            if (msgs[0] == "IND_CONTRIBUTE"):
+                self.requestChanged.emit(1, 1, msgs[1:])
 
-            elif(msgs[0] == "TOP_WINNER"):
-                self.requestChanged.emit(2,2, msgs[1:])
+            elif (msgs[0] == "TOP_WINNER"):
+                self.requestChanged.emit(2, 2, msgs[1:])
 
-            elif(msgs[0] == "TOP_LOSSER"):
-                self.requestChanged.emit(2,3, msgs[1:])
-
+            elif (msgs[0] == "TOP_LOSSER"):
+                self.requestChanged.emit(2, 3, msgs[1:])
 
 
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
@@ -500,6 +504,16 @@ class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
 
         self.Data = {}
+        self.color_list = [(193, 210, 240),
+                           (58, 135, 162),
+                           (196, 62, 244),
+                           (147, 223, 153),
+                           (103, 182, 144),
+                           (194, 22, 47),
+                           (22, 182, 89)]
+
+        self.time_dict = {}
+
         self.RequestRowKey = {}
         self.OrderRowKey = {}
         self.BatchRowKey = {}  # To manage batch row index
@@ -521,7 +535,6 @@ class Control_sys_Tab(QTabWidget):
 
         self.g_losser_row_dict = {}
         self.losser_next_row = 0
-
 
         super().__init__(parent)
 
@@ -739,59 +752,108 @@ class Control_sys_Tab(QTabWidget):
             self.Data.append(temp)
 
     def plotData(self, biaoji, new_data):
-        # print(len(self.Data))
+        # # print(len(self.Data))
+        # if new_data != None:
+        #     self.Data[biaoji].append(new_data)
+        #
+        #     item = DrawRecItem(self.Data)
+        #
+        #     ## 清空layout2 以重新插入图片
+        #     for i in range(self.layout2.count()):
+        #         self.layout2.itemAt(i).widget().deleteLater()
+        #
+        #     ## 由于新添了
+        #     max_len = max(len(self.Data[k]) for k in self.Data.keys())
+        #     max_index = max(self.Data, key=lambda k: len(self.Data[k]))
+        #
+        #     index = range(max_len)
+        #     time_list = []
+        #     for i in index:
+        #         temp = self.Data[max_index][i][0]
+        #         time_list.append(temp)
+        #     ticks = [(i, j) for i, j in zip(index, time_list)]
+        #     strAxis = MyAxisItem(ticks, orientation="bottom")
+        #     self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+        #     self.plt2 = pg.PlotWidget()
+        #
+        #     ## 设置背景颜色
+        #     self.plt.setBackground((255, 255, 255))
+        #
+        #     # 将iTem加入到plotwidget控件中
+        #     self.plt.addItem(item)
+        #
+        #     # 将控件添加到pyqt中
+        #     self.layout2.addWidget(self.plt, 0, 0)
+        #
+        #     # 添加控件2
+        #     # self.layout2.addWidget(self.plt2,0,1)
+        #
+        #     # 将layout 布局添加到 tab2中
+        #     self.tab2.setLayout(self.layout2)
+        #
+        #     # 设置标签
+        #     self.label = pg.TextItem()
+        #
+        #     self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
+        #     self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
+        #     self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
+        #     self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
+        #     min_len = min(len(self.Data[k]) for k in self.Data.keys())
+        #     if min_len > 1:
+        #         self.move_slot = pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
+
         if new_data != None:
             self.Data[biaoji].append(new_data)
 
-            item = DrawRecItem(self.Data)
+            # 画图
+        x = []
+        y = []
+        for i in self.Data[biaoji]:
+            x.append(self.time_dict[i[0]])
+            y.append(float(i[3]))
 
-            ## 清空layout2 以重新插入图片
-            for i in range(self.layout2.count()):
-                self.layout2.itemAt(i).widget().deleteLater()
-
-            ## 由于新添了
-            max_len = max(len(self.Data[k]) for k in self.Data.keys())
-            max_index = max(self.Data, key=lambda k: len(self.Data[k]))
-
-            index = range(max_len)
-            time_list = []
-            for i in index:
-                temp = self.Data[max_index][i][0]
-                time_list.append(temp)
-            ticks = [(i, j) for i, j in zip(index, time_list)]
-            strAxis = MyAxisItem(ticks, orientation="bottom")
-            self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
-            self.plt2 = pg.PlotWidget()
-
-            ## 设置背景颜色
-            self.plt.setBackground((255, 255, 255))
-
-            # 将iTem加入到plotwidget控件中
-            self.plt.addItem(item)
-
-            # 将控件添加到pyqt中
-            self.layout2.addWidget(self.plt, 0, 0)
-
-            # 添加控件2
-            # self.layout2.addWidget(self.plt2,0,1)
-
-            # 将layout 布局添加到 tab2中
-            self.tab2.setLayout(self.layout2)
-
-            # 设置标签
-            self.label = pg.TextItem()
-
-            self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
-            self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
-            self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
-            self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
-            min_len = min(len(self.Data[k]) for k in self.Data.keys())
-            if min_len > 1:
-                self.move_slot = pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
+        index = list(self.Data.keys()).index(biaoji)
+        # print(len(self.Data[biaoji]))
+        color_id = list(self.Data.keys()).index(biaoji)
+        self.plot_plt.plot().setData(x, y, pen=self.color_list[color_id])
 
     def tab2UI(self):
         #         self.timer_start()
         self.layout2 = QGridLayout()
+        self.tab2.setLayout(self.layout2)
+
+        # 生成时间轴列表
+        int_list = np.arange(6 * 60 * 60)
+        x_list = []
+        temp = pd.date_range('9:00', periods=6 * 60 * 60, freq='S')
+        for i in temp:
+            x_list.append(str(i).split()[1].replace(':', ''))
+        count = 0
+        for x in x_list:
+            self.time_dict[x] = count
+            count += 1
+
+        ticks = [(i, j) for i, j in zip(int_list, x_list)]
+        strAxis = MyAxisItem(ticks, orientation="bottom")
+
+        self.plot_plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+        self.plot_plt.addLegend()
+        self.plot_plt.showGrid(x=True, y=True)
+        self.layout2.addWidget(self.plot_plt)
+
+        len_keys = len(self.Data.keys())
+        # print(self.Data.keys())
+        plot_line = [0] * len_keys
+        count = 0
+        for i in range(len_keys):
+            plot_line[i] = self.plot_plt.plot([0], [0], pen=self.color_list[i], name=list(self.Data.keys())[i])
+
+        ## 设置背景色
+        self.plot_plt.setBackground((255, 255, 255))
+        ## 定位图片显示时的坐标轴
+        self.plot_plt.setYRange(max=30, min=-30)
+        self.plot_plt.setXRange(min=0, max=21600)
+
         # self.timer_start()
         self.execute()
 
@@ -863,6 +925,7 @@ class Control_sys_Tab(QTabWidget):
 
         self.tab3.setLayout(layout)
         self.pushButton3.clicked.connect(self.slotStart_tab3)
+
     ####################################################################################################################
     ##############################################################
     #     PyQt5 中的pyQtslot 是python中的decorator，用其可以将一个method 定义为 槽
@@ -1143,7 +1206,7 @@ if __name__ == "__main__":
     # for i in range(len(valid_set)):
     #     valid_tuple_list.append(tuple(valid_set.iloc[i]))
 
-    AcctNameDict = GetAcctName()#pd.read_csv("./depend/accountMap.txt")
+    AcctNameDict = GetAcctName()  # pd.read_csv("./depend/accountMap.txt")
     AcctNameDict[0] = "UNKNOWN"
     print(AcctNameDict.keys())
     app = QtWidgets.QApplication.instance()
@@ -1152,6 +1215,5 @@ if __name__ == "__main__":
     w = Control_sys_Tab()
     w.show()
     sys.exit(app.exec_())
-
 
 ####################################################################################################################
