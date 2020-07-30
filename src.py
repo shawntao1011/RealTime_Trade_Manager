@@ -12,7 +12,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPicture, QPainter
 from PyQt5.QtCore import QPointF, QRectF
 import pyqtgraph as pg
-
+import configparser
+import os
 
 ##################### global Variable##############################
 
@@ -523,6 +524,10 @@ class Control_sys_Tab(QTabWidget):
         self.g_CurrBatchRow = 0
         self.g_CurrErrorRow = 0
 
+        # set config
+        self.conf = configparser.ConfigParser()
+        self.conf.read('./depend/config.txt')
+
         # tab3 use
         self.g_cat_row_dict = {}
         self.cat_next_row = 0
@@ -859,18 +864,18 @@ class Control_sys_Tab(QTabWidget):
         # 设置主布局
         layout = QHBoxLayout()
 
-        sec_layout = QVBoxLayout()
+        sec_layout = QFormLayout()
 
         # 创建表格窗口1
         self.tableWidget4 = QtWidgets.QTableWidget()
         self.tableWidget4.setRowCount(40)
         self.tableWidget4.setColumnCount(8)
         self.tableWidget4.setObjectName("tableWidget4")
-
-        self.tableWidget4.setHorizontalHeaderLabels(["CAT_IDX", "CAT_NAME", "CAT_RET","CAT_WGT","ACTIVE_WGT","FLOW", "ML", "FLML"])
+        fixed_list = self.conf.get('tab3', 'table4_lables').split(',')
+        self.tableWidget4.setHorizontalHeaderLabels(fixed_list)
         for i in range(0, 40):
             self.tableWidget4.setRowHeight(i, 30)
-        for i in range(0, 8):
+        for i in range(0, len(fixed_list)):
             self.tableWidget4.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
             if (i == 1):
                 self.tableWidget4.setColumnWidth(i, 200)
@@ -883,10 +888,11 @@ class Control_sys_Tab(QTabWidget):
         self.tableWidget5.setColumnCount(4)
         self.tableWidget5.setObjectName("tableWidget5")
         self.tableWidget5.setAutoFillBackground(True)
-        self.tableWidget5.setHorizontalHeaderLabels(["Ticker", "FLOW", "ML", "FLML"])
+        fixed_list = self.conf.get('tab3', 'table5_lables').split(',')
+        self.tableWidget5.setHorizontalHeaderLabels(fixed_list)
         for i in range(0, 3000):
             self.tableWidget5.setRowHeight(i, 30)
-        for i in range(0, 4):
+        for i in range(0, len(fixed_list)):
             self.tableWidget5.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
             self.tableWidget5.setColumnWidth(i, 180)
 
@@ -898,10 +904,11 @@ class Control_sys_Tab(QTabWidget):
 
         self.tableWidget6.setObjectName("tableWidget6")
         self.tableWidget6.setAutoFillBackground(True)
-        self.tableWidget6.setHorizontalHeaderLabels(["Ticker", "FLOW", "ML", "FLML"])
+        fixed_list = self.conf.get('tab3', 'table6_lables').split(',')
+        self.tableWidget6.setHorizontalHeaderLabels(fixed_list)
         for i in range(0, 3000):
-            self.tableWidget6.setRowHeight(i,30)
-        for i in range(0, 4):
+            self.tableWidget6.setRowHeight(i, 30)
+        for i in range(0, len(fixed_list)):
             self.tableWidget6.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
             self.tableWidget6.setColumnWidth(i, 180)
 
@@ -925,7 +932,6 @@ class Control_sys_Tab(QTabWidget):
 
         self.tab3.setLayout(layout)
         self.pushButton3.clicked.connect(self.slotStart_tab3)
-
     ####################################################################################################################
     ##############################################################
     #     PyQt5 中的pyQtslot 是python中的decorator，用其可以将一个method 定义为 槽
@@ -1059,14 +1065,17 @@ class Control_sys_Tab(QTabWidget):
         column = 0
 
         # message type
+
         if (msgType == 1):
+            strategy_list = self.conf.get('tab3', 'table4_strategies').split(',')
+            lable_list = self.conf.get('tab3', 'table4_lables').split(',')
             cat_id = self.g_cat_row_dict.get(text[1])
             if cat_id == None:
                 cat_id = self.cat_next_row
                 self.cat_next_row += 1
                 self.g_cat_row_dict[text[1]] = cat_id
             ## cat_indx 和 cat_name
-            for ele in text[1:6]:
+            for ele in text[1:(len(lable_list) - len(strategy_list)) + 1]:
                 it = self.tableWidget4.item(cat_id, column)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
@@ -1077,125 +1086,126 @@ class Control_sys_Tab(QTabWidget):
                 column += 1
 
             # PNL
-            if text[0] == 'FLOW':
-                it = self.tableWidget4.item(cat_id, 5)
+
+            if text[0] in strategy_list:
+                col = strategy_list.index(text[0])
+                col = len(lable_list) - len(strategy_list) + col
+                it = self.tableWidget4.item(cat_id, col)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget4.setItem(cat_id, 5, it)
+                    self.tableWidget4.setItem(cat_id, col, it)
                 it.setText(text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
                 if float(text[-1]) <= -5:
                     it.setBackground(QtGui.QColor(144, 238, 144))
                 if float(text[-1]) >= 5:
                     it.setBackground(QtGui.QColor(193, 210, 240))
+        #             if text[0] == 'FLOW':
+        #                 it = self.tableWidget4.item(cat_id, 5)
+        #                 if it is None:
+        #                     it = QtWidgets.QTableWidgetItem()
+        #                     self.tableWidget4.setItem(cat_id, 5, it)
+        #                 it.setText(text[-1])
+        #                 it.setTextAlignment(Qt.AlignCenter)
+        #                 if float(text[-1]) <= -5:
+        #                     it.setBackground(QtGui.QColor(144, 238, 144))
+        #                 if float(text[-1]) >= 5:
+        #                     it.setBackground(QtGui.QColor(193, 210, 240))
 
-            if text[0] == 'ML':
-                it = self.tableWidget4.item(cat_id, 6)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget4.setItem(cat_id, 6, it)
-                it.setText(text[-1])
-                it.setTextAlignment(Qt.AlignCenter)
-                if float(text[-1]) <= -5:
-                    it.setBackground(QtGui.QColor(144, 238, 144))
-                if float(text[-1]) >= 5:
-                    it.setBackground(QtGui.QColor(193, 210, 240))
+        #             if text[0] == 'ML':
+        #                 it = self.tableWidget4.item(cat_id, 6)
+        #                 if it is None:
+        #                     it = QtWidgets.QTableWidgetItem()
+        #                     self.tableWidget4.setItem(cat_id, 6, it)
+        #                 it.setText(text[-1])
+        #                 it.setTextAlignment(Qt.AlignCenter)
+        #                 if float(text[-1]) <= -5:
+        #                     it.setBackground(QtGui.QColor(144, 238, 144))
+        #                 if float(text[-1]) >= 5:
+        #                     it.setBackground(QtGui.QColor(193, 210, 240))
 
-            if text[0] == 'FLML':
-                it = self.tableWidget4.item(cat_id, 7)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget4.setItem(cat_id, 7, it)
-                it.setText(text[-1])
-                it.setTextAlignment(Qt.AlignCenter)
-                if float(text[-1]) <= -5:
-                    it.setBackground(QtGui.QColor(144, 238, 144))
-                if float(text[-1]) >= 5:
-                    it.setBackground(QtGui.QColor(193, 210, 240))
-
+        #             if text[0] == 'FLML':
+        #                 it = self.tableWidget4.item(cat_id, 7)
+        #                 if it is None:
+        #                     it = QtWidgets.QTableWidgetItem()
+        #                     self.tableWidget4.setItem(cat_id, 7, it)
+        #                 it.setText(text[-1])
+        #                 it.setTextAlignment(Qt.AlignCenter)
+        #                 if float(text[-1]) <= -5:
+        #                     it.setBackground(QtGui.QColor(144, 238, 144))
+        #                 if float(text[-1]) >= 5:
+        #                     it.setBackground(QtGui.QColor(193, 210, 240))
 
         elif (msgType == 2):
-            winner_id = self.g_winner_row_dict.get(text[1])
-            if winner_id == None:
-                winner_id = self.winner_next_row
-                self.winner_next_row += 1
-                self.g_winner_row_dict[text[1]] = winner_id
-
-            # ticker
-            for ele in text[1:2]:
-                it = self.tableWidget5.item(winner_id, column)
+            strategy_list = self.conf.get('tab3', 'table5_strategies').split(',')
+            lable_list = self.conf.get('tab3', 'table5_lables').split(',')
+            cat_id = self.g_cat_row_dict.get(text[1])
+            if cat_id == None:
+                cat_id = self.cat_next_row
+                self.cat_next_row += 1
+                self.g_cat_row_dict[text[1]] = cat_id
+            ## cat_indx 和 cat_name
+            for ele in text[1:(len(lable_list) - len(strategy_list)) + 1]:
+                it = self.tableWidget5.item(cat_id, column)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget5.setItem(winner_id, column, it)
+                    self.tableWidget5.setItem(cat_id, column, it)
 
                 it.setText(ele)
                 it.setTextAlignment(Qt.AlignCenter)
                 column += 1
 
             # PNL
-            if text[0] == 'FLOW':
-                it = self.tableWidget5.item(winner_id, 1)
+
+            if text[0] in strategy_list:
+                col = strategy_list.index(text[0])
+                col = len(lable_list) - len(strategy_list) + col
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget5.setItem(winner_id, 1, it)
-                it.setText(text[-2] + ',' + text[-1])
+                    self.tableWidget5.setItem(cat_id, col, it)
+                it.setText(text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
-            if text[0] == 'ML':
-                it = self.tableWidget5.item(winner_id, 2)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget5.setItem(winner_id, 2, it)
-                it.setText(text[-2] + ',' + text[-1])
-                it.setTextAlignment(Qt.AlignCenter)
-            if text[0] == 'FLML':
-                it = self.tableWidget5.item(winner_id, 3)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget5.setItem(winner_id, 3, it)
-                it.setText(text[-2] + ',' + text[-1])
-                it.setTextAlignment(Qt.AlignCenter)
+                if float(text[-1]) <= -5:
+                    it.setBackground(QtGui.QColor(144, 238, 144))
+                if float(text[-1]) >= 5:
+                    it.setBackground(QtGui.QColor(193, 210, 240))
+
 
 
         else:
-            losser_id = self.g_losser_row_dict.get(text[1])
-            if losser_id == None:
-                losser_id = self.losser_next_row
-                self.losser_next_row += 1
-                self.g_losser_row_dict[text[1]] = losser_id
-
-            # ticker
-            for ele in text[1:2]:
-                it = self.tableWidget6.item(losser_id, column)
+            strategy_list = self.conf.get('tab3', 'table6_strategies').split(',')
+            lable_list = self.conf.get('tab3', 'table6_lables').split(',')
+            cat_id = self.g_cat_row_dict.get(text[1])
+            if cat_id == None:
+                cat_id = self.cat_next_row
+                self.cat_next_row += 1
+                self.g_cat_row_dict[text[1]] = cat_id
+            ## cat_indx 和 cat_name
+            for ele in text[1:(len(lable_list) - len(strategy_list))]:
+                it = self.tableWidget6.item(cat_id, column)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget6.setItem(losser_id, column, it)
+                    self.tableWidget6.setItem(cat_id, column, it)
 
                 it.setText(ele)
                 it.setTextAlignment(Qt.AlignCenter)
                 column += 1
 
             # PNL
-            if text[0] == 'FLOW':
-                it = self.tableWidget6.item(losser_id, 1)
+            strategy_list = self.conf.get('tab3', 'table6_strategies').split(',')
+            lable_list = self.conf.get('tab3', 'table6_lables').split(',')
+            if text[0] in strategy_list:
+                col = strategy_list.index(text[0])
+                col = len(lable_list) - len(strategy_list) + col
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget6.setItem(losser_id, 1, it)
-                it.setText(text[-2] + ',' + text[-1])
+                    self.tableWidget6.setItem(cat_id, col, it)
+                it.setText(text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
-            if text[0] == 'ML':
-                it = self.tableWidget6.item(losser_id, 2)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget6.setItem(losser_id, 2, it)
-                it.setText(text[-2] + ',' + text[-1])
-                it.setTextAlignment(Qt.AlignCenter)
-            if text[0] == 'FLML':
-                it = self.tableWidget6.item(losser_id, 3)
-                if it is None:
-                    it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget6.setItem(losser_id, 3, it)
-                it.setText(text[-2] + ',' + text[-1])
-                it.setTextAlignment(Qt.AlignCenter)
+                if float(text[-1]) <= -5:
+                    it.setBackground(QtGui.QColor(144, 238, 144))
+                if float(text[-1]) >= 5:
+                    it.setBackground(QtGui.QColor(193, 210, 240))
 
 
 ################################################ main ##############################################################

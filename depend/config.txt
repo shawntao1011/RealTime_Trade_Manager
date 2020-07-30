@@ -1,0 +1,11 @@
+[tab2]
+tab2_lines=FLOW,ML,FLML
+
+[tab3]
+table4_lables=CAT_IDX,CAT_NAME,CAT_RET,CAT_WGT,ACTIVE_WGT,FLOW,ML,FLML
+table4_strategies=FLOW,ML,FLML
+table5_lables=Ticker,FLOW,ML,FLML
+table5_strategies=FLOW,ML,FLML
+table6_lables=Ticker,FLOW,ML,FLML
+table6_strategies=FLOW,ML,FLML
+
