@@ -13,6 +13,7 @@ from PyQt5.QtGui import QPicture, QPainter
 from PyQt5.QtCore import QPointF, QRectF
 import pyqtgraph as pg
 
+
 ##################### global Variable##############################
 
 AcctNameDict = {}
@@ -84,13 +85,11 @@ def get_stock_history_from_yahoo(ticker="NFLX"):
     valid_set = hdata_reindexed.sort_values(by='Date').reset_index(drop=True)
     return valid_set
 
-
 ## 从本地下载数据
 def get_stock_history_from_csv(path="nflx.csv"):
     temp = pd.read_csv(path, index_col=0)
     valid_set = temp.sort_values(by='Date').reset_index(drop=True)
     return valid_set
-
 
 ## 模拟数据流，逐条获取数据
 def get_stock_info():
@@ -105,7 +104,6 @@ def get_stock_info():
 def read_config():
     config = pd.read_csv("./depend/socket.txt", header=None)
     return list(config[0])
-
 
 #########################################################################################################
 
@@ -176,7 +174,6 @@ class Request(object):
         tradedAvgPrice = float(elems[7])
         fillRate = float(elems[8])
         referencePrice = float(elems[9])
-
 
 ## Batch Manager 类，负责管理batch
 class BatchManager():
@@ -866,16 +863,19 @@ class Control_sys_Tab(QTabWidget):
 
         # 创建表格窗口1
         self.tableWidget4 = QtWidgets.QTableWidget()
-        self.tableWidget4.setRowCount(50)
-        self.tableWidget4.setColumnCount(5)
+        self.tableWidget4.setRowCount(40)
+        self.tableWidget4.setColumnCount(8)
         self.tableWidget4.setObjectName("tableWidget4")
 
-        self.tableWidget4.setHorizontalHeaderLabels(["Cat_idx", "Cat_name", "FLOW", "ML", "FLML"])
-        for i in range(0, 50):
-            self.tableWidget4.setRowHeight(i, 50)
-        for i in range(0, 5):
+        self.tableWidget4.setHorizontalHeaderLabels(["CAT_IDX", "CAT_NAME", "CAT_RET","CAT_WGT","ACTIVE_WGT","FLOW", "ML", "FLML"])
+        for i in range(0, 40):
+            self.tableWidget4.setRowHeight(i, 30)
+        for i in range(0, 8):
             self.tableWidget4.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
-            self.tableWidget4.setColumnWidth(i, 150)
+            if (i == 1):
+                self.tableWidget4.setColumnWidth(i, 200)
+            else:
+                self.tableWidget4.setColumnWidth(1, 100)
 
         # 表格窗口2
         self.tableWidget5 = QtWidgets.QTableWidget()
@@ -885,10 +885,10 @@ class Control_sys_Tab(QTabWidget):
         self.tableWidget5.setAutoFillBackground(True)
         self.tableWidget5.setHorizontalHeaderLabels(["Ticker", "FLOW", "ML", "FLML"])
         for i in range(0, 3000):
-            self.tableWidget5.setRowHeight(i, 50)
+            self.tableWidget5.setRowHeight(i, 30)
         for i in range(0, 4):
             self.tableWidget5.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
-            self.tableWidget5.setColumnWidth(i, 170)
+            self.tableWidget5.setColumnWidth(i, 180)
 
         # 表格窗口3
         self.tableWidget6 = QtWidgets.QTableWidget()
@@ -900,10 +900,10 @@ class Control_sys_Tab(QTabWidget):
         self.tableWidget6.setAutoFillBackground(True)
         self.tableWidget6.setHorizontalHeaderLabels(["Ticker", "FLOW", "ML", "FLML"])
         for i in range(0, 3000):
-            self.tableWidget6.setRowHeight(i, 50)
+            self.tableWidget6.setRowHeight(i,30)
         for i in range(0, 4):
             self.tableWidget6.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
-            self.tableWidget6.setColumnWidth(i, 170)
+            self.tableWidget6.setColumnWidth(i, 180)
 
         self.pushButton3 = QtWidgets.QPushButton()
         # self.pushButton.setMaximumWidth(100)
@@ -1066,7 +1066,7 @@ class Control_sys_Tab(QTabWidget):
                 self.cat_next_row += 1
                 self.g_cat_row_dict[text[1]] = cat_id
             ## cat_indx 和 cat_name
-            for ele in text[1:3]:
+            for ele in text[1:6]:
                 it = self.tableWidget4.item(cat_id, column)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
@@ -1078,10 +1078,10 @@ class Control_sys_Tab(QTabWidget):
 
             # PNL
             if text[0] == 'FLOW':
-                it = self.tableWidget4.item(cat_id, 2)
+                it = self.tableWidget4.item(cat_id, 5)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget4.setItem(cat_id, 2, it)
+                    self.tableWidget4.setItem(cat_id, 5, it)
                 it.setText(text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
                 if float(text[-1]) <= -5:
@@ -1090,10 +1090,10 @@ class Control_sys_Tab(QTabWidget):
                     it.setBackground(QtGui.QColor(193, 210, 240))
 
             if text[0] == 'ML':
-                it = self.tableWidget4.item(cat_id, 3)
+                it = self.tableWidget4.item(cat_id, 6)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget4.setItem(cat_id, 3, it)
+                    self.tableWidget4.setItem(cat_id, 6, it)
                 it.setText(text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
                 if float(text[-1]) <= -5:
@@ -1102,10 +1102,10 @@ class Control_sys_Tab(QTabWidget):
                     it.setBackground(QtGui.QColor(193, 210, 240))
 
             if text[0] == 'FLML':
-                it = self.tableWidget4.item(cat_id, 4)
+                it = self.tableWidget4.item(cat_id, 7)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget4.setItem(cat_id, 4, it)
+                    self.tableWidget4.setItem(cat_id, 7, it)
                 it.setText(text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
                 if float(text[-1]) <= -5:
