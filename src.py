@@ -817,7 +817,7 @@ class Control_sys_Tab(QTabWidget):
         index = list(self.Data.keys()).index(biaoji)
         # print(len(self.Data[biaoji]))
         color_id = list(self.Data.keys()).index(biaoji)
-        self.plot_plt.plot().setData(x, y, pen=self.color_list[color_id])
+        self.plot_plt.plot().setData(x, y, pen=pg.mkPen(self.color_list[color_id],width=10))
 
     def tab2UI(self):
         #         self.timer_start()
