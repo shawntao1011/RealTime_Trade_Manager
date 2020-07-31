@@ -883,7 +883,7 @@ class Control_sys_Tab(QTabWidget):
         # 设置主布局
         layout = QHBoxLayout()
 
-        sec_layout = QFormLayout()
+        sec_layout = QVBoxLayout()
 
         # 创建表格窗口1
         self.tableWidget4 = QtWidgets.QTableWidget()
