@@ -101,10 +101,10 @@ def get_stock_info():
         return temp
 
 
-## 获取config
-def read_config():
-    config = pd.read_csv("./depend/socket.txt", header=None)
-    return list(config[0])
+# ## 获取config
+# def read_config():
+#     config = pd.read_csv("./depend/socket.txt", header=None)
+#     return list(config[0])
 
 #########################################################################################################
 
@@ -575,10 +575,10 @@ class Control_sys_Tab(QTabWidget):
         self.addTab(self.tab3, "风险分析")
 
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
-        self.config = read_config()
-        for i in self.config:
+        config_tab2 = self.conf.get('tab2', 'tab2_lines').split(",")
+        for i in config_tab2:
             self.Data[i] = []
-        self.work = Update_tab2(self.config)
+        self.work = Update_tab2(config_tab2)
 
         # 每个选项卡自定义的内容
         self.tab1UI()
