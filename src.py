@@ -227,7 +227,7 @@ class UpdateData(QtCore.QThread):
     requestChanged = QtCore.pyqtSignal(int, int, str)  # rowIndex, msgType,msg
 
     def run(self):
-        requestChanged = QtCore.pyqtSignal(int, int, str)
+        #requestChanged = QtCore.pyqtSignal(int, int, str)
         context = zmq.Context()
         sock = context.socket(zmq.SUB)
         sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_SubOda")
@@ -481,7 +481,9 @@ class UpdateData_tab3(QtCore.QThread):
         sock.connect("tcp://192.168.0.32:19006")
         ### DOUBLE RQID Problem
 
+        #         for i in range(108):
         while True:
+            #             real one
             msg = sock.recv()
             msgs = msg.decode("utf-8").split(",")
             # msgs= msg.split(',')
@@ -495,6 +497,20 @@ class UpdateData_tab3(QtCore.QThread):
 
             elif (msgs[0] == "TOP_LOSSER"):
                 self.requestChanged.emit(2, 3, msgs[1:])
+            # test one:
+
+
+#             msgs=get_info()
+#             time.sleep(1)
+# print(msgs)
+#             if(msgs[0] == "IND_CONTRIBUTE"):
+#                 self.requestChanged.emit(1,1, msgs[1:])
+
+#             elif(msgs[0] == "TOP_WINNER"):
+#                 self.requestChanged.emit(2,2, msgs[1:])
+
+#             elif(msgs[0] == "TOP_LOSSER"):
+#                 self.requestChanged.emit(2,3, msgs[1:])
 
 
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
@@ -817,7 +833,7 @@ class Control_sys_Tab(QTabWidget):
         index = list(self.Data.keys()).index(biaoji)
         # print(len(self.Data[biaoji]))
         color_id = list(self.Data.keys()).index(biaoji)
-        self.plot_plt.plot().setData(x, y, pen=pg.mkPen(self.color_list[color_id],width=10))
+        self.plot_plt.plot().setData(x, y, pen=pg.mkPen(self.color_list[color_id],width=5))
 
     def tab2UI(self):
         #         self.timer_start()
@@ -829,7 +845,10 @@ class Control_sys_Tab(QTabWidget):
         x_list = []
         temp = pd.date_range('9:00', periods=6 * 60 * 60, freq='S')
         for i in temp:
-            x_list.append(str(i).split()[1].replace(':', ''))
+            temp_time = str(i).split()[1].replace(':', '')
+            if temp_time[0] == '0':
+                temp_time = temp_time[1:]
+            x_list.append(temp_time)
         count = 0
         for x in x_list:
             self.time_dict[x] = count
@@ -1060,7 +1079,7 @@ class Control_sys_Tab(QTabWidget):
     @QtCore.pyqtSlot(int, int, list)
     def onRequestChanged_tab3(self, row, msgType, text):
         # text 即为我们所需要的数据列
-        print(text)
+        # print(text)
 
         column = 0
 
@@ -1137,19 +1156,20 @@ class Control_sys_Tab(QTabWidget):
         #                     it.setBackground(QtGui.QColor(193, 210, 240))
 
         elif (msgType == 2):
+            print(text)
             strategy_list = self.conf.get('tab3', 'table5_strategies').split(',')
             lable_list = self.conf.get('tab3', 'table5_lables').split(',')
-            cat_id = self.g_cat_row_dict.get(text[1])
-            if cat_id == None:
-                cat_id = self.cat_next_row
-                self.cat_next_row += 1
-                self.g_cat_row_dict[text[1]] = cat_id
-            ## cat_indx 和 cat_name
+            winner_id = self.g_winner_row_dict.get(text[1])
+            if winner_id == None:
+                winner_id = self.winner_next_row
+                self.winner_next_row += 1
+                self.g_winner_row_dict[text[1]] = winner_id
+            ## winner_indx 和 winner_name
             for ele in text[1:(len(lable_list) - len(strategy_list)) + 1]:
-                it = self.tableWidget5.item(cat_id, column)
+                it = self.tableWidget5.item(winner_id, column)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget5.setItem(cat_id, column, it)
+                    self.tableWidget5.setItem(winner_id, column, it)
 
                 it.setText(ele)
                 it.setTextAlignment(Qt.AlignCenter)
@@ -1160,32 +1180,30 @@ class Control_sys_Tab(QTabWidget):
             if text[0] in strategy_list:
                 col = strategy_list.index(text[0])
                 col = len(lable_list) - len(strategy_list) + col
+                it = self.tableWidget5.item(winner_id, col)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget5.setItem(cat_id, col, it)
-                it.setText(text[-1])
+                    self.tableWidget5.setItem(winner_id, col, it)
+                it.setText(text[-2] + ',' + text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
-                if float(text[-1]) <= -5:
-                    it.setBackground(QtGui.QColor(144, 238, 144))
-                if float(text[-1]) >= 5:
-                    it.setBackground(QtGui.QColor(193, 210, 240))
+
 
 
 
         else:
             strategy_list = self.conf.get('tab3', 'table6_strategies').split(',')
             lable_list = self.conf.get('tab3', 'table6_lables').split(',')
-            cat_id = self.g_cat_row_dict.get(text[1])
-            if cat_id == None:
-                cat_id = self.cat_next_row
-                self.cat_next_row += 1
-                self.g_cat_row_dict[text[1]] = cat_id
-            ## cat_indx 和 cat_name
-            for ele in text[1:(len(lable_list) - len(strategy_list))]:
-                it = self.tableWidget6.item(cat_id, column)
+            losser_id = self.g_losser_row_dict.get(text[1])
+            if losser_id == None:
+                losser_id = self.losser_next_row
+                self.losser_next_row += 1
+                self.g_losser_row_dict[text[1]] = losser_id
+            ## losser_indx 和 losser_name
+            for ele in text[1:(len(lable_list) - len(strategy_list)) + 1]:
+                it = self.tableWidget6.item(losser_id, column)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget6.setItem(cat_id, column, it)
+                    self.tableWidget6.setItem(losser_id, column, it)
 
                 it.setText(ele)
                 it.setTextAlignment(Qt.AlignCenter)
@@ -1197,16 +1215,12 @@ class Control_sys_Tab(QTabWidget):
             if text[0] in strategy_list:
                 col = strategy_list.index(text[0])
                 col = len(lable_list) - len(strategy_list) + col
+                it = self.tableWidget6.item(losser_id, col)
                 if it is None:
                     it = QtWidgets.QTableWidgetItem()
-                    self.tableWidget6.setItem(cat_id, col, it)
-                it.setText(text[-1])
+                    self.tableWidget6.setItem(losser_id, col, it)
+                it.setText(text[-2] + ',' + text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
-                if float(text[-1]) <= -5:
-                    it.setBackground(QtGui.QColor(144, 238, 144))
-                if float(text[-1]) >= 5:
-                    it.setBackground(QtGui.QColor(193, 210, 240))
-
 
 ################################################ main ##############################################################
 
