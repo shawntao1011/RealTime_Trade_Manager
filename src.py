@@ -888,9 +888,9 @@ class Control_sys_Tab(QTabWidget):
         # 创建表格窗口1
         self.tableWidget4 = QtWidgets.QTableWidget()
         self.tableWidget4.setRowCount(40)
-        self.tableWidget4.setColumnCount(8)
-        self.tableWidget4.setObjectName("tableWidget4")
         fixed_list = self.conf.get('tab3', 'table4_lables').split(',')
+        self.tableWidget4.setColumnCount(len(fixed_list))
+        self.tableWidget4.setObjectName("tableWidget4")
         self.tableWidget4.setHorizontalHeaderLabels(fixed_list)
         for i in range(0, 40):
             self.tableWidget4.setRowHeight(i, 30)
@@ -904,10 +904,10 @@ class Control_sys_Tab(QTabWidget):
         # 表格窗口2
         self.tableWidget5 = QtWidgets.QTableWidget()
         self.tableWidget5.setRowCount(3000)
-        self.tableWidget5.setColumnCount(4)
+        fixed_list = self.conf.get('tab3', 'table5_lables').split(',')
+        self.tableWidget5.setColumnCount(len(fixed_list))
         self.tableWidget5.setObjectName("tableWidget5")
         self.tableWidget5.setAutoFillBackground(True)
-        fixed_list = self.conf.get('tab3', 'table5_lables').split(',')
         self.tableWidget5.setHorizontalHeaderLabels(fixed_list)
         for i in range(0, 3000):
             self.tableWidget5.setRowHeight(i, 30)
@@ -919,11 +919,12 @@ class Control_sys_Tab(QTabWidget):
         self.tableWidget6 = QtWidgets.QTableWidget()
 
         self.tableWidget6.setRowCount(3000)
-        self.tableWidget6.setColumnCount(4)
+        fixed_list = self.conf.get('tab3', 'table6_lables').split(',')
+        self.tableWidget6.setColumnCount(len(fixed_list))
 
         self.tableWidget6.setObjectName("tableWidget6")
         self.tableWidget6.setAutoFillBackground(True)
-        fixed_list = self.conf.get('tab3', 'table6_lables').split(',')
+
         self.tableWidget6.setHorizontalHeaderLabels(fixed_list)
         for i in range(0, 3000):
             self.tableWidget6.setRowHeight(i, 30)
@@ -951,6 +952,7 @@ class Control_sys_Tab(QTabWidget):
 
         self.tab3.setLayout(layout)
         self.pushButton3.clicked.connect(self.slotStart_tab3)
+
     ####################################################################################################################
     ##############################################################
     #     PyQt5 中的pyQtslot 是python中的decorator，用其可以将一个method 定义为 槽
