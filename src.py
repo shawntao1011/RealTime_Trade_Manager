@@ -821,7 +821,10 @@ class Control_sys_Tab(QTabWidget):
         #         self.move_slot = pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
 
         if new_data != None:
-            self.Data[biaoji].append(new_data)
+            try:
+                self.Data[biaoji].append(new_data)
+            except Exception as e:
+                print("error in saving data...")
 
             # 画图
         x = []
