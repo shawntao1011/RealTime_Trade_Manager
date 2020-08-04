@@ -223,99 +223,6 @@ class BatchManager():
         return self.AcctID;
 
 
-class UpdateData(QtCore.QThread):
-    requestChanged = QtCore.pyqtSignal(int, int, str)  # rowIndex, msgType,msg
-
-    def run(self):
-        #requestChanged = QtCore.pyqtSignal(int, int, str)
-        context = zmq.Context()
-        sock = context.socket(zmq.SUB)
-        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_SubOda")
-        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Request")
-        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Error")
-        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
-        sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
-        # print("hello")
-        sock.connect("tcp://192.168.0.66:15300")
-        sock.connect("tcp://117.185.37.175:51336")
-        ### DOUBLE RQID Problem
-
-        while True:
-            msg = sock.recv()
-            msgs = msg.decode("ascii").split("|")
-            # msgs= msg.split(',')
-            # self.dataChanged.emit(2, 2, msgs[0])
-            print(msgs[0], msgs[1])
-            if (msgs[0] == "EMS_GUI_Request"):
-                self.requestChanged.emit(1, 1, msgs[1])
-                print(msgs[1])
-            elif (msgs[0] == "EMS_GUI_SubOda"):
-                self.requestChanged.emit(2, 2, msgs[1])
-                print(msgs[1])
-            elif (msgs[0] == "EMS_GUI_Error"):
-                self.requestChanged.emit(2, 3, msgs[1])
-                print(msgs[1])
-
-
-#### tab2 线程############################
-class Update_tab2(QtCore.QThread):
-    requestChange = QtCore.pyqtSignal(str, tuple)
-
-    def __init__(self, parent=None):
-        super(Update_tab2, self).__init__(parent)
-        # 设置工作状态与初始num数值
-
-    def __del__(self):
-        # 线程状态改变与线程终止
-        self.working = False
-        self.wait()
-
-    def run(self):
-        context = zmq.Context()
-        sock = context.socket(zmq.SUB)
-        sock.setsockopt(zmq.SUBSCRIBE, b"FLOW")
-        sock.setsockopt(zmq.SUBSCRIBE, b"FLML")
-        sock.setsockopt(zmq.SUBSCRIBE, b"ML")
-        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
-        sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
-
-        sock.connect("tcp://192.168.0.32:19006")
-        #         for i in range(100):
-        while True:
-            # msg = get_stock_info()
-            sss = sock.recv()
-            msg = sss.decode("ascii").split(",")
-            new_data_FLOW = []
-            new_data_FLML = []
-            new_data_ML = []
-            print(msg)
-            if msg[0] == 'FLOW':
-                new_data_FLOW.append(msg[1])
-                for i in msg[2:]:
-                    new_data_FLOW.append(float(i) * 10000)
-                print('FLOW ', new_data_FLOW)
-                # 通过自定义信号把待显示的字符串传递给槽函数
-                # print(tuple(new_data_FLOW))
-                self.requestChange.emit('FLOW', tuple(new_data_FLOW))
-            if msg[0] == 'FLML':
-                new_data_FLML.append(msg[1])
-                for i in msg[2:]:
-                    new_data_FLML.append(float(i) * 10000)
-                print('FLML ', new_data_FLML)
-                self.requestChange.emit('FLML', tuple(new_data_FLML))
-                # print('FLML ',new_data_FLML)
-            if msg[0] == 'ML':
-                new_data_ML.append(msg[1])
-                for i in msg[2:]:
-                    new_data_ML.append(float(i) * 10000)
-                print('ML ', new_data_ML)
-                self.requestChange.emit('ML', tuple(new_data_ML))
-
-
-#             if msg!= None and msg[0]=='TEST':
-#                 print(tuple(msg[1:]))
-#                 self.requestChange.emit('TEST',tuple(msg[1:]))
-#                 #print('ML ',new_data_ML)
 
 
 class DrawRecItem(pg.GraphicsObject):
@@ -405,6 +312,40 @@ class MyAxisItem(pg.AxisItem):
         return strings
 
 
+##############tab1 线程###########################
+class UpdateData(QtCore.QThread):
+    requestChanged = QtCore.pyqtSignal(int, int, str)  # rowIndex, msgType,msg
+
+    def run(self):
+        #requestChanged = QtCore.pyqtSignal(int, int, str)
+        context = zmq.Context()
+        sock = context.socket(zmq.SUB)
+        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_SubOda")
+        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Request")
+        sock.setsockopt(zmq.SUBSCRIBE, b"EMS_GUI_Error")
+        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
+        sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
+        # print("hello")
+        sock.connect("tcp://192.168.0.66:15300")
+        sock.connect("tcp://117.185.37.175:51336")
+        ### DOUBLE RQID Problem
+
+        while True:
+            msg = sock.recv()
+            msgs = msg.decode("ascii").split("|")
+            # msgs= msg.split(',')
+            # self.dataChanged.emit(2, 2, msgs[0])
+            print(msgs[0], msgs[1])
+            if (msgs[0] == "EMS_GUI_Request"):
+                self.requestChanged.emit(1, 1, msgs[1])
+                print(msgs[1])
+            elif (msgs[0] == "EMS_GUI_SubOda"):
+                self.requestChanged.emit(2, 2, msgs[1])
+                print(msgs[1])
+            elif (msgs[0] == "EMS_GUI_Error"):
+                self.requestChanged.emit(2, 3, msgs[1])
+                print(msgs[1])
+
 #### tab2 线程############################
 class Update_tab2(QtCore.QThread):
     requestChange = QtCore.pyqtSignal(str, tuple)
@@ -424,44 +365,66 @@ class Update_tab2(QtCore.QThread):
         sock = context.socket(zmq.SUB)
         for i in self.config:
             sock.setsockopt(zmq.SUBSCRIBE, i.encode())
+
+        # 新添一个 HIST 表示符
+        sock.setsockopt(zmq.SUBSCRIBE, b"HIST")
         sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
 
-        sock.connect("tcp://192.168.0.32:19006")
+        sock.connect("tcp://192.168.0.32:19007")
         #         for i in range(100):
         while True:
-            # msg=get_stock_info()
+            #             msg=get_stock_info()
+            #             time.sleep(1)
             sss = sock.recv()
             msg = sss.decode("ascii").split(",")
-            new_data_FLOW = []
-            new_data_FLML = []
-            new_data_ML = []
-            print(msg)
-            if msg[0] == 'FLOW':
-                new_data_FLOW.append(msg[1])
-                for i in msg[2:]:
-                    new_data_FLOW.append(float(i) * 10000)
-                print('FLOW ', new_data_FLOW)
+            new_data_collection = []
 
-                self.requestChange.emit('FLOW', tuple(new_data_FLOW))
-            if msg[0] == 'FLML':
-                new_data_FLML.append(msg[1])
+            #             if msg[0]=='ML':
+            #                 print(msg)
+
+            lag = msg[0]
+            if lag in self.config:
+                new_data_collection.append(msg[1])
                 for i in msg[2:]:
-                    new_data_FLML.append(float(i) * 10000)
-                print('FLML ', new_data_FLML)
-                self.requestChange.emit('FLML', tuple(new_data_FLML))
-            if msg[0] == 'ML':
-                new_data_ML.append(msg[1])
-                for i in msg[2:]:
-                    new_data_ML.append(float(i) * 10000)
-                print('ML ', new_data_ML)
-                self.requestChange.emit('ML', tuple(new_data_ML))
+                    new_data_collection.append(float(i) * 10000)
+                self.requestChange.emit(lag, tuple(new_data_collection))
+
+            if lag == 'HIST':
+                new_data_collection.append(msg[1])
+                new_data_collection.append(msg[2])
+                for i in msg[3:]:
+                    new_data_collection.append(float(i) * 10000)
+                self.requestChange.emit(lag, tuple(new_data_collection))
+
+
+#             if msg[0]=='FLOW':
+#                 new_data_FLOW.append(msg[1])
+#                 for i in msg[2:]:
+#                     new_data_FLOW.append(float(i)*10000)
+#                 print('FLOW ',new_data_FLOW)
+
+#                 self.requestChange.emit('FLOW',tuple(new_data_FLOW))
+#             if msg[0]=='FLML':
+#                 new_data_FLML.append(msg[1])
+#                 for i in msg[2:]:
+#                     new_data_FLML.append(float(i)*10000)
+#                 print('FLML ',new_data_FLML)
+#                 self.requestChange.emit('FLML',tuple(new_data_FLML))
+#             if msg[0]=='ML':
+#                 time.sleep(1)
+#                 new_data_ML.append(msg[1])
+#                 for i in msg[2:]:
+#                     new_data_ML.append(float(i)*10000)
+#                 print('ML ',new_data_ML)
+#                 self.requestChange.emit('ML',tuple(new_data_ML))
 
 
 #             if msg!= None and msg[0]=='TEST':
-#                 print(tuple(msg[1:]))
+#                 #print(tuple(msg[1:]))
 #                 self.requestChange.emit('TEST',tuple(msg[1:]))
-#                 #print('ML ',new_data_ML)
+#                 #self.requestChange.emit('TEST2',('090000',0,0,0))
+# #                 #print('ML ',new_data_ML)
 
 
 ###### tab3 线程###########################
@@ -577,7 +540,7 @@ class Control_sys_Tab(QTabWidget):
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
         config_tab2 = self.conf.get('tab2', 'tab2_lines').split(",")
         for i in config_tab2:
-            self.Data[i] = []
+            self.Data[i] = {}
         self.work = Update_tab2(config_tab2)
 
         # 每个选项卡自定义的内容
@@ -683,9 +646,18 @@ class Control_sys_Tab(QTabWidget):
         self.work.requestChange.connect(self.display)
 
     def display(self, biaoji, new_data):
-        # 由于自定义信号时自动传递0个字符串参数，所以在这个槽函数中要接受0个参数
+        # 由于自定义信号时自动传递1个字符串参数，所以在这个槽函数中要接受1个参数
         # print(new_data)
-        self.plotData(biaoji, new_data)
+
+        # 对于现有的 时间戳，如果读取的标识符为 HIST 则不需要绘图，直接添加数据
+        if new_data[1] != '0':
+            if biaoji == 'HIST':
+                # print(new_data)
+                self.Data[new_data[0]][new_data[1]] = tuple(new_data[2:])
+
+            else:
+
+                self.plotData(biaoji, new_data)
 
     ########################################
     # 定义一个计时器
@@ -770,73 +742,108 @@ class Control_sys_Tab(QTabWidget):
             self.Data.append(temp)
 
     def plotData(self, biaoji, new_data):
-        # # print(len(self.Data))
-        # if new_data != None:
-        #     self.Data[biaoji].append(new_data)
-        #
-        #     item = DrawRecItem(self.Data)
-        #
-        #     ## 清空layout2 以重新插入图片
-        #     for i in range(self.layout2.count()):
-        #         self.layout2.itemAt(i).widget().deleteLater()
-        #
-        #     ## 由于新添了
-        #     max_len = max(len(self.Data[k]) for k in self.Data.keys())
-        #     max_index = max(self.Data, key=lambda k: len(self.Data[k]))
-        #
-        #     index = range(max_len)
-        #     time_list = []
-        #     for i in index:
-        #         temp = self.Data[max_index][i][0]
-        #         time_list.append(temp)
-        #     ticks = [(i, j) for i, j in zip(index, time_list)]
-        #     strAxis = MyAxisItem(ticks, orientation="bottom")
-        #     self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
-        #     self.plt2 = pg.PlotWidget()
-        #
-        #     ## 设置背景颜色
-        #     self.plt.setBackground((255, 255, 255))
-        #
-        #     # 将iTem加入到plotwidget控件中
-        #     self.plt.addItem(item)
-        #
-        #     # 将控件添加到pyqt中
-        #     self.layout2.addWidget(self.plt, 0, 0)
-        #
-        #     # 添加控件2
-        #     # self.layout2.addWidget(self.plt2,0,1)
-        #
-        #     # 将layout 布局添加到 tab2中
-        #     self.tab2.setLayout(self.layout2)
-        #
-        #     # 设置标签
-        #     self.label = pg.TextItem()
-        #
-        #     self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
-        #     self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
-        #     self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
-        #     self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
-        #     min_len = min(len(self.Data[k]) for k in self.Data.keys())
-        #     if min_len > 1:
-        #         self.move_slot = pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
+        # print(len(self.Data))
+        #         print(new_data)
+        # 添加数据
+        if new_data != None and new_data[0] != '0':
+            #             try:
+            # new data 为 tuple形
+            self.Data[biaoji][new_data[0]] = list(new_data)[1:]
+        #             except Exception as e:
+        #                 print("error in saving data...")
 
-        if new_data != None:
-            try:
-                self.Data[biaoji].append(new_data)
-            except Exception as e:
-                print("error in saving data...")
+        # 画图
+        # 由于数据图可能会有一个点 传过去所有的历史数据，所以 现在改为dict存储
 
-            # 画图
+        # 首先需要对 dict进行排序
+        # 首先获得所有 biaoji下的 dict keys 的交集，因为x,y 需要长度相同
+        temp = list(self.Data.keys())
+        min_time_list = self.Data[temp[0]].keys()
+
+        for x in list(self.Data.keys()):
+            # min_time_list=list(set(min_time_list).intersection(set(self.Data[x].keys())))
+            min_time_list = list(set(min_time_list).union(set(self.Data[x].keys())))
+
+        min_time_list = sorted(min_time_list, key=lambda d: pd.to_datetime(d, format="%H%M%S"))
+
         x = []
+        time_out = []
+        for time in min_time_list:
+            x.append(self.time_dict[time])
+        #         if biaoji=='ML':
+        #             print(time_out)
+
         y = []
-        for i in self.Data[biaoji]:
-            x.append(self.time_dict[i[0]])
-            y.append(float(i[3]))
+
+        #         #生成绘图时 需要的x轴，y轴
+        #         for i in self.Data[biaoji]:
+        #             x.append(self.time_dict[i[0]])
+        #             y.append(float(i[3]))
+
+        for i in min_time_list:
+            y.append(float(self.Data[biaoji][i][3]))
+
+        #         print(x)
+        #         if biaoji=='ML':
+        #             print(x)
 
         index = list(self.Data.keys()).index(biaoji)
         # print(len(self.Data[biaoji]))
         color_id = list(self.Data.keys()).index(biaoji)
-        self.plot_plt.plot().setData(x, y, pen=pg.mkPen(self.color_list[color_id],width=5))
+        # self.plot_line[index].clear()
+        self.plot_line[index].setData(x, y, pen=pg.mkPen(self.color_list[color_id], width=3))
+        # print(len(self.Data['TEST2']))
+
+###################################################该部分 代码 为实时更新和删除图片，用于显示自定义类###############################
+#         if new_data != None:
+#             self.Data[biaoji].append(new_data)
+
+#             item = DrawRecItem(self.D
+
+#             ## 清空layout2 以重新插入图片
+#             for i in range(self.layout2.count()):
+#                 self.layout2.itemAt(i).widget().deleteLater()
+
+#             ## 由于新添了
+#             max_len=max(len(self.Data[k]) for k in self.Data.keys())
+#             max_index=max(self.Data, key=lambda k:len(self.Data[k]))
+
+#             index = range(max_len)
+#             time_list = []
+#             for i in index:
+#                 temp = self.Data[max_index][i][0]
+#                 time_list.append(temp)
+#             ticks = [(i, j) for i, j in zip(index, time_list)]
+#             strAxis = MyAxisItem(ticks, orientation="bottom")
+#             self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+#             self.plt2 = pg.PlotWidget()
+
+#             ## 设置背景颜色
+#             self.plt.setBackground((255, 255, 255))
+
+#             # 将iTem加入到plotwidget控件中
+#             self.plt.addItem(item)
+
+#             # 将控件添加到pyqt中
+#             self.layout2.addWidget(self.plt,0,0)
+
+#             # 添加控件2
+#             #self.layout2.addWidget(self.plt2,0,1)
+
+#             # 将layout 布局添加到 tab2中
+#             self.tab2.setLayout(self.layout2)
+
+#             # 设置标签
+#             self.label = pg.TextItem()
+
+#             self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
+#             self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
+#             self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
+#             self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
+#             min_len=min(len(self.Data[k]) for k in self.Data.keys())
+# #             if min_len>1:
+# #                 self.move_slot=pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
+#####################################################################################################################################
 
     def tab2UI(self):
         #         self.timer_start()
@@ -852,6 +859,8 @@ class Control_sys_Tab(QTabWidget):
             if temp_time[0] == '0':
                 temp_time = temp_time[1:]
             x_list.append(temp_time)
+
+        # 生成绘图时需要使用的时间轴
         count = 0
         for x in x_list:
             self.time_dict[x] = count
@@ -860,6 +869,7 @@ class Control_sys_Tab(QTabWidget):
         ticks = [(i, j) for i, j in zip(int_list, x_list)]
         strAxis = MyAxisItem(ticks, orientation="bottom")
 
+        # 创建画图板
         self.plot_plt = pg.PlotWidget(axisItems={'bottom': strAxis})
         self.plot_plt.addLegend()
         self.plot_plt.showGrid(x=True, y=True)
@@ -867,15 +877,15 @@ class Control_sys_Tab(QTabWidget):
 
         len_keys = len(self.Data.keys())
         # print(self.Data.keys())
-        plot_line = [0] * len_keys
+        self.plot_line = [0] * len_keys
         count = 0
         for i in range(len_keys):
-            plot_line[i] = self.plot_plt.plot([0], [0], pen=self.color_list[i], name=list(self.Data.keys())[i])
+            self.plot_line[i] = self.plot_plt.plot([0], [0], pen=self.color_list[i], name=list(self.Data.keys())[i])
 
         ## 设置背景色
         self.plot_plt.setBackground((255, 255, 255))
         ## 定位图片显示时的坐标轴
-        self.plot_plt.setYRange(max=30, min=-30)
+        self.plot_plt.setYRange(max=50, min=-50)
         self.plot_plt.setXRange(min=0, max=21600)
 
         # self.timer_start()
@@ -1012,7 +1022,7 @@ class Control_sys_Tab(QTabWidget):
             myTradeDirection = 1.0 if (int(elems[4]) == 0) else -1.0
             self.BatchManagers[elems[2]].bookTotalValue(elems[3], float(elems[5]) * float(elems[10]) * myTradeDirection)
             self.BatchManagers[elems[2]].bookTradedValue(elems[3], float(elems[8]))  ### need to change here
-            print(elems[3], float(elems[8]))
+            # print(elems[3], float(elems[8]))
 
             ### FILL INFORMATION IN THIS ROW
             ###print("GET NOTIONA:",str(self.BatchManagers[elems[2]].getBuyNotional()),str(self.BatchManagers[elems[2]].getSellNotional()))
