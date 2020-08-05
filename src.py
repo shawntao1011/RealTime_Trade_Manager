@@ -228,7 +228,7 @@ class BatchManager():
 class DrawRecItem(pg.GraphicsObject):
     def __init__(self, data):
         super().__init__()
-        self.data = data
+        self.LineData = data
         self.color_list = [(217, 194, 234),
                            (58, 135, 162),
                            (196, 62, 244),
@@ -248,42 +248,42 @@ class DrawRecItem(pg.GraphicsObject):
         # 设置画pen 颜色，用来画线
         # 颜色代码使用 RGB值，缩写，都可以
         #         p1.setPen(pg.mkPen((0,0,0)))
-        #         for i in range(len(self.data)):
+        #         for i in range(len(self.LineData)):
         #             #画一条最大值最小值之间的线
-        #             p1.drawLine(QPointF(i,self.data[i][3]),QPointF(i,self.data[i][2]))
+        #             p1.drawLine(QPointF(i,self.LineData[i][3]),QPointF(i,self.LineData[i][2]))
         #             # 设置画刷颜色
-        #             if self.data[i][1]>self.data[i][4]:
+        #             if self.LineData[i][1]>self.LineData[i][4]:
         #                 p1.setBrush(pg.mkBrush('g'))
         #             else:
         #                 p1.setBrush(pg.mkBrush('r'))
-        #             p1.drawRect(QRectF(i-0.3,self.data[i][1],0.6,self.data[i][4]-self.data[i][1]))
+        #             p1.drawRect(QRectF(i-0.3,self.LineData[i][1],0.6,self.LineData[i][4]-self.LineData[i][1]))
 
         #### 画自定义的线 ####################
         #          ## TEST close线
         #         p1.setPen(pg.mkPen(255,0,0))
-        #         for i in range(len(self.data['TEST'])-1):
-        #             p1.drawLine(QPointF(i,self.data['TEST'][i][4]),QPointF(i+1,self.data['TEST'][i+1][4]))
+        #         for i in range(len(self.LineData['TEST'])-1):
+        #             p1.drawLine(QPointF(i,self.LineData['TEST'][i][4]),QPointF(i+1,self.LineData['TEST'][i+1][4]))
         count = 0
-        for index in self.data.keys():
+        for index in self.LineData.keys():
             rand_col = self.color_list[count]
             p1.setPen(pg.mkPen(rand_col))
-            for i in range(len(self.data[index]) - 1):
-                p1.drawLine(QPointF(i, self.data[index][i][4]), QPointF(i + 1, self.data[index][i + 1][4]))
+            for i in range(len(self.LineData[index]) - 1):
+                p1.drawLine(QPointF(i, self.LineData[index][i][4]), QPointF(i + 1, self.LineData[index][i + 1][4]))
             count += 1
         # ## FLOW  close线
         # p1.setPen(pg.mkPen(255, 0, 0))
-        # for i in range(len(self.data['FLOW']) - 1):
-        #     p1.drawLine(QPointF(i, self.data['FLOW'][i][4]), QPointF(i + 1, self.data['FLOW'][i + 1][4]))
+        # for i in range(len(self.LineData['FLOW']) - 1):
+        #     p1.drawLine(QPointF(i, self.LineData['FLOW'][i][4]), QPointF(i + 1, self.LineData['FLOW'][i + 1][4]))
         #
         # ## FLML  close线
         # p1.setPen(pg.mkPen(0, 255, 0))
-        # for i in range(len(self.data['FLML']) - 1):
-        #     p1.drawLine(QPointF(i, self.data['FLML'][i][4]), QPointF(i + 1, self.data['FLML'][i + 1][4]))
+        # for i in range(len(self.LineData['FLML']) - 1):
+        #     p1.drawLine(QPointF(i, self.LineData['FLML'][i][4]), QPointF(i + 1, self.LineData['FLML'][i + 1][4]))
         #
         # ## ML  close线
         # p1.setPen(pg.mkPen(0, 0, 255))
-        # for i in range(len(self.data['ML']) - 1):
-        #     p1.drawLine(QPointF(i, self.data['ML'][i][4]), QPointF(i + 1, self.data['ML'][i + 1][4]))
+        # for i in range(len(self.LineData['ML']) - 1):
+        #     p1.drawLine(QPointF(i, self.LineData['ML'][i][4]), QPointF(i + 1, self.LineData['ML'][i + 1][4]))
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
@@ -334,7 +334,7 @@ class UpdateData(QtCore.QThread):
             msg = sock.recv()
             msgs = msg.decode("ascii").split("|")
             # msgs= msg.split(',')
-            # self.dataChanged.emit(2, 2, msgs[0])
+            # self.LineDataChanged.emit(2, 2, msgs[0])
             print(msgs[0], msgs[1])
             if (msgs[0] == "EMS_GUI_Request"):
                 self.requestChanged.emit(1, 1, msgs[1])
@@ -450,7 +450,7 @@ class UpdateData_tab3(QtCore.QThread):
             msg = sock.recv()
             msgs = msg.decode("utf-8").split(",")
             # msgs= msg.split(',')
-            # self.dataChanged.emit(2, 2, msgs[0])
+            # self.LineDataChanged.emit(2, 2, msgs[0])
             # print(msgs)
             if (msgs[0] == "IND_CONTRIBUTE"):
                 self.requestChanged.emit(1, 1, msgs[1:])
@@ -480,7 +480,7 @@ class UpdateData_tab3(QtCore.QThread):
 class Control_sys_Tab(QTabWidget):
     def __init__(self, parent=None):
 
-        self.Data = {}
+        self.LineData = {}
         self.color_list = [(193, 210, 240),
                            (58, 135, 162),
                            (196, 62, 244),
@@ -540,8 +540,8 @@ class Control_sys_Tab(QTabWidget):
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
         config_tab2 = self.conf.get('tab2', 'tab2_lines').split(",")
         for i in config_tab2:
-            self.Data[i] = {}
-        self.work = Update_tab2(config_tab2)
+            self.LineData[i] = {}
+        self.tab2_work = Update_tab2(config_tab2)
 
         # 每个选项卡自定义的内容
         self.tab1UI()
@@ -641,9 +641,9 @@ class Control_sys_Tab(QTabWidget):
     ### 测试线程用代码
     def execute(self):
         # 启动线程
-        self.work.start()
+        self.tab2_work.start()
         # 线程自定义信号连接的槽函数
-        self.work.requestChange.connect(self.display)
+        self.tab2_work.requestChange.connect(self.display)
 
     def display(self, biaoji, new_data):
         # 由于自定义信号时自动传递1个字符串参数，所以在这个槽函数中要接受1个参数
@@ -653,7 +653,7 @@ class Control_sys_Tab(QTabWidget):
         if new_data[1] != '0':
             if biaoji == 'HIST':
                 # print(new_data)
-                self.Data[new_data[0]][new_data[1]] = tuple(new_data[2:])
+                self.LineData[new_data[0]][new_data[1]] = tuple(new_data[2:])
 
             else:
 
@@ -680,8 +680,8 @@ class Control_sys_Tab(QTabWidget):
                 if self.plt.sceneBoundingRect().contains(pos):
 
                     # 一个文本项 用来展示十字对应的信息
-                    min_len = min(len(self.Data[k]) for k in self.Data.keys())
-                    max_len = max(len(self.Data[k]) for k in self.Data.keys())
+                    min_len = min(len(self.LineData[k]) for k in self.LineData.keys())
+                    max_len = max(len(self.LineData[k]) for k in self.LineData.keys())
 
                     #                     print(pos)
                     mousePoint = self.plt.plotItem.vb.mapSceneToView(pos)  # 转换鼠标坐标
@@ -693,7 +693,7 @@ class Control_sys_Tab(QTabWidget):
                     # print('max_len ',min_len)
                     if -1 < index < min_len:
                         # print('index ',index)
-                        min_index = min(self.Data, key=lambda k: abs(self.Data[k][index][4] - pos_y))
+                        min_index = min(self.LineData, key=lambda k: abs(self.LineData[k][index][4] - pos_y))
 
                         # 在label中写入HTML
                         self.label.setHtml(
@@ -703,15 +703,15 @@ class Control_sys_Tab(QTabWidget):
                             收盘：{3}</p><p style='color:black'>\
                             最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
                             最低价：<span style='color:green;'>{5}</span></p>".format(
-                                min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
-                                self.Data[min_index][index][4],
-                                self.Data[min_index][index][2], self.Data[min_index][index][3]))
+                                min_index, self.LineData[min_index][index][0], self.LineData[min_index][index][1],
+                                self.LineData[min_index][index][4],
+                                self.LineData[min_index][index][2], self.LineData[min_index][index][3]))
                         self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
                         # print(self.label)
 
                     # 当时间线不统一时,只显示数据最多的
                     elif min_len < index < max_len:
-                        min_index = min(self.Data, key=lambda k: len(self.Data[k]))
+                        min_index = min(self.LineData, key=lambda k: len(self.LineData[k]))
                         # 在label中写入HTML
                         self.label.setHtml(
                             "<p style='color:black'><strong>数据源：{0}\
@@ -720,9 +720,9 @@ class Control_sys_Tab(QTabWidget):
                             收盘：{3}</p><p style='color:black'>\
                             最高价：<span style='color:red;'>{4}</span></p><p style='color:black'>\
                             最低价：<span style='color:green;'>{5}</span></p>".format(
-                                min_index, self.Data[min_index][index][0], self.Data[min_index][index][1],
-                                self.Data[min_index][index][4],
-                                self.Data[min_index][index][2], self.Data[min_index][index][3]))
+                                min_index, self.LineData[min_index][index][0], self.LineData[min_index][index][1],
+                                self.LineData[min_index][index][4],
+                                self.LineData[min_index][index][2], self.LineData[min_index][index][3]))
                         self.label.setPos(mousePoint.x(), mousePoint.y())  # 设置label的位置
 
                     ## 将label添加进 plt
@@ -739,110 +739,112 @@ class Control_sys_Tab(QTabWidget):
     def append_stock_data(self):
         temp = get_stock_info()
         if temp != None:
-            self.Data.append(temp)
+            self.LineData.append(temp)
 
     def plotData(self, biaoji, new_data):
-        # print(len(self.Data))
-        #         print(new_data)
-        # 添加数据
-        if new_data != None and new_data[0] != '0':
-            #             try:
-            # new data 为 tuple形
-            self.Data[biaoji][new_data[0]] = list(new_data)[1:]
-        #             except Exception as e:
-        #                 print("error in saving data...")
+           try:
+                # print(len(self.LineData))
+                #         print(new_data)
+                # 添加数据
+                if new_data != None and new_data[0] != '0':
+                    #             try:
+                    # new data 为 tuple形
+                    self.LineData[biaoji][new_data[0]] = list(new_data)[1:]
+                #             except Exception as e:
+                #                 print("error in saving data...")
 
-        # 画图
-        # 由于数据图可能会有一个点 传过去所有的历史数据，所以 现在改为dict存储
+                # 画图
+                # 由于数据图可能会有一个点 传过去所有的历史数据，所以 现在改为dict存储
 
-        # 首先需要对 dict进行排序
-        # 首先获得所有 biaoji下的 dict keys 的交集，因为x,y 需要长度相同
-        temp = list(self.Data.keys())
-        min_time_list = self.Data[temp[0]].keys()
+                # 首先需要对 dict进行排序
+                # 首先获得所有 biaoji下的 dict keys 的交集，因为x,y 需要长度相同
+                temp = list(self.LineData.keys())
+                min_time_list = self.LineData[temp[0]].keys()
 
-        for x in list(self.Data.keys()):
-            # min_time_list=list(set(min_time_list).intersection(set(self.Data[x].keys())))
-            min_time_list = list(set(min_time_list).union(set(self.Data[x].keys())))
+                for x in list(self.LineData.keys()):
+                    # min_time_list=list(set(min_time_list).intersection(set(self.LineData[x].keys())))
+                    min_time_list = list(set(min_time_list).union(set(self.LineData[x].keys())))
 
-        min_time_list = sorted(min_time_list, key=lambda d: pd.to_datetime(d, format="%H%M%S"))
+                min_time_list = sorted(min_time_list, key=lambda d: pd.to_datetime(d, format="%H%M%S"))
 
-        x = []
-        time_out = []
-        for time in min_time_list:
-            x.append(self.time_dict[time])
-        #         if biaoji=='ML':
-        #             print(time_out)
+                x = []
+                time_out = []
+                for time in min_time_list:
+                    x.append(self.time_dict[time])
+                #         if biaoji=='ML':
+                #             print(time_out)
 
-        y = []
+                y = []
 
-        #         #生成绘图时 需要的x轴，y轴
-        #         for i in self.Data[biaoji]:
-        #             x.append(self.time_dict[i[0]])
-        #             y.append(float(i[3]))
+                #         #生成绘图时 需要的x轴，y轴
+                #         for i in self.LineData[biaoji]:
+                #             x.append(self.time_dict[i[0]])
+                #             y.append(float(i[3]))
 
-        for i in min_time_list:
-            y.append(float(self.Data[biaoji][i][3]))
+                for i in min_time_list:
+                    y.append(float(self.LineData[biaoji][i][3]))
 
-        #         print(x)
-        #         if biaoji=='ML':
-        #             print(x)
+                #         print(x)
+                #         if biaoji=='ML':
+                #             print(x)
 
-        index = list(self.Data.keys()).index(biaoji)
-        # print(len(self.Data[biaoji]))
-        color_id = list(self.Data.keys()).index(biaoji)
-        # self.plot_line[index].clear()
-        self.plot_line[index].setData(x, y, pen=pg.mkPen(self.color_list[color_id], width=3))
-        # print(len(self.Data['TEST2']))
+                index = list(self.LineData.keys()).index(biaoji)
+                # print(len(self.LineData[biaoji]))
+                color_id = list(self.LineData.keys()).index(biaoji)
+                # self.plot_line[index].clear()
+                self.plot_line[index].setData(x, y, pen=pg.mkPen(self.color_list[color_id], width=3))
+                # print(len(self.LineData['TEST2']))
+           except Exception as e:
+               print("error in plotData")
+        ###################################################该部分 代码 为实时更新和删除图片，用于显示自定义类###############################
+        #         if new_data != None:
+        #             self.LineData[biaoji].append(new_data)
 
-###################################################该部分 代码 为实时更新和删除图片，用于显示自定义类###############################
-#         if new_data != None:
-#             self.Data[biaoji].append(new_data)
+        #             item = DrawRecItem(self.D
 
-#             item = DrawRecItem(self.D
+        #             ## 清空layout2 以重新插入图片
+        #             for i in range(self.layout2.count()):
+        #                 self.layout2.itemAt(i).widget().deleteLater()
 
-#             ## 清空layout2 以重新插入图片
-#             for i in range(self.layout2.count()):
-#                 self.layout2.itemAt(i).widget().deleteLater()
+        #             ## 由于新添了
+        #             max_len=max(len(self.LineData[k]) for k in self.LineData.keys())
+        #             max_index=max(self.LineData, key=lambda k:len(self.LineData[k]))
 
-#             ## 由于新添了
-#             max_len=max(len(self.Data[k]) for k in self.Data.keys())
-#             max_index=max(self.Data, key=lambda k:len(self.Data[k]))
+        #             index = range(max_len)
+        #             time_list = []
+        #             for i in index:
+        #                 temp = self.LineData[max_index][i][0]
+        #                 time_list.append(temp)
+        #             ticks = [(i, j) for i, j in zip(index, time_list)]
+        #             strAxis = MyAxisItem(ticks, orientation="bottom")
+        #             self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
+        #             self.plt2 = pg.PlotWidget()
 
-#             index = range(max_len)
-#             time_list = []
-#             for i in index:
-#                 temp = self.Data[max_index][i][0]
-#                 time_list.append(temp)
-#             ticks = [(i, j) for i, j in zip(index, time_list)]
-#             strAxis = MyAxisItem(ticks, orientation="bottom")
-#             self.plt = pg.PlotWidget(axisItems={'bottom': strAxis})
-#             self.plt2 = pg.PlotWidget()
+        #             ## 设置背景颜色
+        #             self.plt.setBackground((255, 255, 255))
 
-#             ## 设置背景颜色
-#             self.plt.setBackground((255, 255, 255))
+        #             # 将iTem加入到plotwidget控件中
+        #             self.plt.addItem(item)
 
-#             # 将iTem加入到plotwidget控件中
-#             self.plt.addItem(item)
+        #             # 将控件添加到pyqt中
+        #             self.layout2.addWidget(self.plt,0,0)
 
-#             # 将控件添加到pyqt中
-#             self.layout2.addWidget(self.plt,0,0)
+        #             # 添加控件2
+        #             #self.layout2.addWidget(self.plt2,0,1)
 
-#             # 添加控件2
-#             #self.layout2.addWidget(self.plt2,0,1)
+        #             # 将layout 布局添加到 tab2中
+        #             self.tab2.setLayout(self.layout2)
 
-#             # 将layout 布局添加到 tab2中
-#             self.tab2.setLayout(self.layout2)
+        #             # 设置标签
+        #             self.label = pg.TextItem()
 
-#             # 设置标签
-#             self.label = pg.TextItem()
-
-#             self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
-#             self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
-#             self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
-#             self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
-#             min_len=min(len(self.Data[k]) for k in self.Data.keys())
-# #             if min_len>1:
-# #                 self.move_slot=pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
+        #             self.vLine = pg.InfiniteLine(angle=90, movable=False, )  # 创建一个垂直线条
+        #             self.hLine = pg.InfiniteLine(angle=0, movable=False, )  # 创建一个水平线条
+        #             self.plt.addItem(self.vLine, ignoreBounds=True)  # 在图形部件中添加垂直线条
+        #             self.plt.addItem(self.hLine, ignoreBounds=True)  # 在图形部件中添加水平线条
+        #             min_len=min(len(self.LineData[k]) for k in self.LineData.keys())
+        # #             if min_len>1:
+        # #                 self.move_slot=pg.SignalProxy(self.plt.scene().sigMouseMoved, rateLimit=60, slot=self.print_slot)
 #####################################################################################################################################
 
     def tab2UI(self):
@@ -851,9 +853,9 @@ class Control_sys_Tab(QTabWidget):
         self.tab2.setLayout(self.layout2)
 
         # 生成时间轴列表
-        int_list = np.arange(6 * 60 * 60)
+        int_list = np.arange(6 * 60 * 60+1)
         x_list = []
-        temp = pd.date_range('9:00', periods=6 * 60 * 60, freq='S')
+        temp = pd.date_range('9:00', periods=6 * 60 * 60+1, freq='S')
         for i in temp:
             temp_time = str(i).split()[1].replace(':', '')
             if temp_time[0] == '0':
@@ -875,18 +877,18 @@ class Control_sys_Tab(QTabWidget):
         self.plot_plt.showGrid(x=True, y=True)
         self.layout2.addWidget(self.plot_plt)
 
-        len_keys = len(self.Data.keys())
-        # print(self.Data.keys())
+        len_keys = len(self.LineData.keys())
+        # print(self.LineData.keys())
         self.plot_line = [0] * len_keys
         count = 0
         for i in range(len_keys):
-            self.plot_line[i] = self.plot_plt.plot([0], [0], pen=self.color_list[i], name=list(self.Data.keys())[i])
+            self.plot_line[i] = self.plot_plt.plot([0], [0], pen=self.color_list[i], name=list(self.LineData.keys())[i])
 
         ## 设置背景色
         self.plot_plt.setBackground((255, 255, 255))
         ## 定位图片显示时的坐标轴
         self.plot_plt.setYRange(max=50, min=-50)
-        self.plot_plt.setXRange(min=0, max=21600)
+        self.plot_plt.setXRange(min=0, max=21600+1)
 
         # self.timer_start()
         self.execute()
