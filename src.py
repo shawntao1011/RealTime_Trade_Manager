@@ -475,6 +475,45 @@ class UpdateData_tab3(QtCore.QThread):
 #             elif(msgs[0] == "TOP_LOSSER"):
 #                 self.requestChanged.emit(2,3, msgs[1:])
 
+#### tab4 线程############################
+class Update_tab4(QtCore.QThread):
+    requestChanged = QtCore.pyqtSignal(tuple)
+
+    def __init__(self, parent=None):
+        super(Update_tab4, self).__init__(parent)
+        # 设置工作状态与初始num数值
+
+    def __del__(self):
+        # 线程状态改变与线程终止
+        self.working = False
+        self.wait()
+
+    def run(self):
+        context = zmq.Context()
+        sock = context.socket(zmq.SUB)
+        sock.setsockopt(zmq.SUBSCRIBE, b'BarraRisk')
+
+        sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
+        sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
+
+        sock.connect('tcp://192.168.1.108:19006')
+        #         for i in range(100):
+        while True:
+            #             msg=get_stock_info()
+            #             time.sleep(1)
+            sss = sock.recv()
+            msg = sss.decode("ascii").replace(' ', '').split(",")
+            new_data_collection = []
+
+            #             if msg[0]=='ML':
+            #                 print(msg)
+
+            lag = msg[1]
+            new_data_collection.append(msg[1])
+            new_data_collection.append(msg[2])
+            new_data_collection.append(float(msg[3]))
+            self.requestChanged.emit(tuple(new_data_collection))
+
 
 ## 主基类，是 整个GUI的主窗口，内部含有三个子窗口
 class Control_sys_Tab(QTabWidget):
@@ -531,11 +570,13 @@ class Control_sys_Tab(QTabWidget):
         self.tab1 = QWidget()
         self.tab2 = QWidget()
         self.tab3 = QWidget()
+        self.tab4 = QWidget()
 
         # 将三个选项卡添加到顶层窗口中
         self.addTab(self.tab1, "交易界面")
         self.addTab(self.tab2, "损益界面")
         self.addTab(self.tab3, "风险分析")
+        self.addTab(self.tab4, "Barra分析")
 
         # 记录tab2 中的数据，后续会从其他类中读取数据，并更新和作图
         config_tab2 = self.conf.get('tab2', 'tab2_lines').split(",")
@@ -543,10 +584,22 @@ class Control_sys_Tab(QTabWidget):
             self.LineData[i] = {}
         self.tab2_work = Update_tab2(config_tab2)
 
+        # tab4 use
+        # 对于Barra数据，现计划是不断刷新十行展示数据，那么只需要使用一维map来存储即可 map的key值为策略名，value为顺序的list
+        self.Barra_Data={}
+        config_tab4=self.conf.get('tab4','table7_lables').split(',')
+        for i in config_tab4:
+            self.Barra_Data[i]={}
+        self.tab4_work=Update_tab4()
+
+        # risk 列表
+        self.risk_list=['BETA',"BP","EP","GRO","LEV","LIQ","MOM","NLSIZE","SIZE","VOL"]
+
         # 每个选项卡自定义的内容
         self.tab1UI()
         self.tab2UI()
         self.tab3UI()
+        self.tab4UI()
 
         self.pushButton.clicked.connect(self.slotStart)
 
@@ -968,6 +1021,93 @@ class Control_sys_Tab(QTabWidget):
         self.tab3.setLayout(layout)
         self.pushButton3.clicked.connect(self.slotStart_tab3)
 
+    def tab4UI(self):
+
+        # 设置布局
+        # 由于只需要两个窗口，因此一个布局器即可
+        layout = QVBoxLayout()
+
+        self.tableWidget7 = QtWidgets.QTableWidget()
+        self.tableWidget7.setRowCount(10)
+        self.tab4_lable_list = self.conf.get('tab4', 'table7_lables').split(',')
+        self.tableWidget7.setColumnCount(len(self.tab4_lable_list))
+        self.tableWidget7.setObjectName("tableWidget7")
+
+        self.tableWidget7.setHorizontalHeaderLabels(self.tab4_lable_list)
+
+        # 设置左侧表单的长宽高
+        for i in range(0, 10):
+            self.tableWidget7.setRowHeight(i, 30)
+
+        for i in range(0, len(self.tab4_lable_list)):
+            self.tableWidget7.horizontalHeaderItem(i).setTextAlignment(Qt.AlignHCenter)
+            self.tableWidget7.setColumnWidth(i, 300)
+
+        ################## 右布局 #################################
+        ## 首先要生成对应的坐标轴类
+        temp_list = np.arange(len(self.risk_list))
+        ticks = [(i, j) for i, j in zip(temp_list, self.risk_list)]
+        strAxis = MyAxisItem(ticks, orientation="bottom")
+
+        # 绘制柱形图所所在位子信息
+        self.plotWidget7 = pg.PlotWidget(axisItems={'bottom': strAxis})
+        self.plotWidget7.addLegend()
+        self.plotWidget7.setFixedHeight(600)
+        ## 设置背景色
+        self.plotWidget7.setBackground((255, 255, 255))
+
+        #### 测试用 绘图###############################################
+        #         # create list of floats
+        #         y1 = np.linspace(0, 20, num=20)
+
+        #         # create horizontal list
+        #         x1 = np.arange(20)
+
+        #         # create bar chart
+        #         bg1 = pg.BarGraphItem(x=x1, height=y1, width=0.6, brush='r')
+
+        #         self.plotWidget7.addItem(bg1)
+        ###############################################################
+
+        # 添加控件进入布局
+        layout.addWidget(self.tableWidget7)
+        layout.addWidget(self.plotWidget7)
+        self.tab4.setLayout(layout)
+
+        # 直接启动进程
+        self.slotStart_tab4()
+        ############################################### tab4 双击事件 ################################################################
+        self.tableWidget7.itemDoubleClicked.connect(self.tab4_clicked)
+
+    def tab4_clicked(self, event=None):
+        # 获得被点击的对象
+        try:
+            obj = event
+            col_index = self.tab4_lable_list[obj.column()]
+            ######################################
+            # 测试用
+            print(self.Barra_Data[col_index])
+            ######################################
+
+            # 当数据完整，即每一个策略对应的 风险数据都有时，开始画图
+            if len(self.Barra_Data[col_index]) >= 10:
+                # 首先需要按顺序生成 对应的列表
+                temp_list = []
+                for i in self.risk_list:
+                    temp_list.append(self.Barra_Data[col_index][i])
+                # create list of floats
+                y1 = temp_list[:]
+
+                # create horizontal list
+                x1 = np.arange(len(y1))
+
+                # create bar chart
+                bg1 = pg.BarGraphItem(x=x1, height=y1, width=0.6, brush=(144, 238, 144), name=col_index + ' Risk')
+
+                self.plotWidget7.clear()
+                self.plotWidget7.addItem(bg1)
+        except Exception as e:
+            print("error in tab4_clicked")
     ####################################################################################################################
     ##############################################################
     #     PyQt5 中的pyQtslot 是python中的decorator，用其可以将一个method 定义为 槽
@@ -1238,6 +1378,42 @@ class Control_sys_Tab(QTabWidget):
                     self.tableWidget6.setItem(losser_id, col, it)
                 it.setText(text[-2] + ',' + text[-1])
                 it.setTextAlignment(Qt.AlignCenter)
+
+    ##############################################tab4 slot#################################################
+    @QtCore.pyqtSlot()
+    def slotStart_tab4(self):
+        # 开启一个新进程用来 更新数据
+        self.update_data_thread4 = Update_tab4(self)
+        self.update_data_thread4.requestChanged.connect(self.onRequestChanged_tab4)
+        # 线程进入 准备阶段
+        self.update_data_thread4.start()
+
+    @QtCore.pyqtSlot(tuple)
+    def onRequestChanged_tab4(self, text):
+        # text 即为我们所需要的数据列
+        # print(text)
+
+        lable_list = self.conf.get('tab4', 'table7_lables').split(',')
+
+        # 设置第一列
+        for i, element in enumerate(self.risk_list):
+            it = QtWidgets.QTableWidgetItem()
+            self.tableWidget7.setItem(i, 0, it)
+            it.setTextAlignment(Qt.AlignCenter)
+            it.setText(element)
+
+        # 根据 传过来的数据设置对应格子
+
+        col_id = self.tab4_lable_list.index(text[1])
+        row_id = self.risk_list.index(text[0])
+        it = self.tableWidget7.item(row_id, col_id)
+        if it is None:
+            it = QtWidgets.QTableWidgetItem()
+            self.tableWidget7.setItem(row_id, col_id, it)
+        self.Barra_Data[text[1]][text[0]] = text[2]
+        it.setText(str(text[2]))
+        it.setTextAlignment(Qt.AlignCenter)
+
 
 ################################################ main ##############################################################
 
