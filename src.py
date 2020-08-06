@@ -371,6 +371,8 @@ class Update_tab2(QtCore.QThread):
         sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
 
+        ### 需要同时 获取 hist 以及实时数据
+        sock.connect("tcp://192.168.0.32:19006")
         sock.connect("tcp://192.168.0.32:19007")
         #         for i in range(100):
         while True:
@@ -496,7 +498,7 @@ class Update_tab4(QtCore.QThread):
         sock.setsockopt(zmq.HEARTBEAT_IVL, 5000)
         sock.setsockopt(zmq.HEARTBEAT_TIMEOUT, 3000)
 
-        sock.connect('tcp://192.168.1.108:19006')
+        sock.connect('tcp://192.168.0.32:19007')
         #         for i in range(100):
         while True:
             #             msg=get_stock_info()
